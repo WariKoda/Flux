@@ -20,8 +20,11 @@ leert die Suche.
 | `↑`/`↓`, `Home`/`End` | Navigation (Überschriften werden übersprungen) |
 | `Enter` oder **Linksklick** | Mit dem gewählten Host verbinden |
 | Mausrad | Scrollen |
-| `Strg+E` | Filter-Ansicht öffnen/schließen (Einträge ein-/ausblenden) |
-| `Strg+T` | Theme wechseln (wird gespeichert) |
+| `Ctrl+E` | Filter-Ansicht öffnen/schließen (Einträge ein-/ausblenden) |
+| `Ctrl+T` | Theme wechseln (wird gespeichert) |
+| `Ctrl+B` | Banner-Stil wechseln (wird gespeichert) |
+| `Ctrl+A` | Banner-Ausrichtung wechseln (wird gespeichert) |
+| `Ctrl+O` | Optionen/Hilfe öffnen/schließen |
 | `Esc` | Suche leeren → Filter-Ansicht schließen → beenden |
 
 In der Filter-Ansicht schalten `Enter`, **Linksklick** oder die Leertaste den
@@ -50,16 +53,36 @@ Benötigt Go ≥ 1.26 und ein `ssh`-Binary im `PATH`.
   farbenblind-freundlichen `cb-dark` (Okabe-Ito Dunkel) und `cb-light`
   (Okabe-Ito Hell) auf Basis der [Okabe-Ito-Palette](https://davidmathlogic.com/colorblind/)
   (Color Universal Design; für Protanopie, Deuteranopie und Tritanopie
-  unterscheidbar). Mit `t` durchschalten — der Anzeigename steht in der
+  unterscheidbar). Mit `Ctrl+T` durchschalten — der Anzeigename steht in der
   Fußzeile; die Wahl landet in `~/.config/flux/theme` und gilt beim nächsten
   Start wieder. Eine kaputte (leere/unbekannte) Theme-Datei ist ein harter
   Fehler.
 - Wildcard-Patterns (`*`, `?`) werden nie angezeigt (`Host *` ist ein
   Default-Block, kein Ziel).
 
+## Banner und Hilfe
+
+Flux bietet vier Banner-Stile: `wordmark-ansi` (Wortmarke · ANSI),
+`wordmark-mono` (Wortmarke · Monochrom), `terminal-ansi` (Terminal · ANSI)
+und `terminal-mono` (Terminal · Monochrom). Die monochromen Varianten
+verwenden die Header-Farbe des aktiven Themes. Mit `Ctrl+B` wechselst du den
+Stil; die Wahl wird in `~/.config/flux/banner` gespeichert.
+
+Mit `Ctrl+A` wechselst du zwischen den Ausrichtungen Links, Mitte und Rechts.
+Flux speichert die Ausrichtung in `~/.config/flux/banner-alignment`. Ist das
+Terminal für Banner und Hostliste zu kurz, blendet Flux nur den Banner
+automatisch aus. Stil und Ausrichtung bleiben dabei gespeichert, und der
+Banner erscheint wieder, sobald genügend Höhe verfügbar ist.
+
+`Ctrl+O` öffnet die Optionen/Hilfe innerhalb desselben Fensters. `Ctrl+O`
+oder `Esc` schließt sie wieder. Suchtext, Auswahl, Ansicht, Theme, Banner und
+Ausrichtung bleiben beim Öffnen und Schließen unverändert. Solange die Hilfe
+geöffnet ist, werden alle anderen Eingaben von den darunterliegenden
+Ansichten ferngehalten; Navigationstasten können den Hilfetext scrollen.
+
 ## Ausschlussliste
 
-Am einfachsten über die Filter-Ansicht (`e`) pflegen. Die Liste liegt in
+Am einfachsten über die Filter-Ansicht (`Ctrl+E`) pflegen. Die Liste liegt in
 `~/.config/flux/exclude` (ein Alias pro Zeile, `#` leitet Kommentare ein) und
 kann auch von Hand bearbeitet werden — **Achtung**: Sobald du in der
 Filter-Ansicht etwas umschaltest, schreibt Flux die Datei komplett neu;
@@ -80,12 +103,14 @@ Flux bricht mit einer klaren Fehlermeldung ab statt still zu degradieren:
 - ein Host-Alias beginnt mit `-` (als ssh-Ziel nicht nutzbar),
 - die Config enthält ausschließlich Wildcard-Blöcke,
 - `ssh` ist nicht im `PATH`,
-- Theme- oder Ausschlussliste lassen sich nicht lesen/schreiben.
+- Theme-, Banner-, Banner-Ausrichtungs- oder Ausschlussdatei lassen sich nicht
+  lesen/schreiben.
 
 ## Sicherheit
 
-- Flux liest ausschließlich `~/.ssh/config` — keine Schlüssel, keine
-  `known_hosts`, keine Netzwerkzugriffe, keine Schreibzugriffe.
+- Flux liest keine Schlüssel oder `known_hosts` und führt keine eigenen
+  Netzwerkzugriffe aus. Schreibzugriffe beschränken sich auf seine Dateien
+  unter `~/.config/flux/`.
 - `ssh` wird ohne Shell-Zwischenschicht mit festen Argumenten gestartet
   (`ssh -- <alias>`); das `--` beendet die Optionsverarbeitung, ein Alias kann
   nie als ssh-Option interpretiert werden.
