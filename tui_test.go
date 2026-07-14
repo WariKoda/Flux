@@ -20,6 +20,31 @@ func TestFooterSettingsText(t *testing.T) {
 			t.Errorf("Status enthält %q nicht: %q", want, got)
 		}
 	}
+	for _, old := range []string{"Wortmarke", "Terminal"} {
+		if strings.Contains(got, old) {
+			t.Errorf("Status enthält alte Banner-Auswahl %q: %q", old, got)
+		}
+	}
+}
+
+func TestNaturalTableWidthDependsOnlyOnGroupAndHostRows(t *testing.T) {
+	entries := []HostEntry{{
+		Alias:         "kurz",
+		Aliases:       []string{"kurz", "zweiter-alias"},
+		HostName:      "srv",
+		User:          "benutzer-mit-sehr-langem-footer-detail",
+		Port:          "2222",
+		RemoteCommand: "su -l zielbenutzer -c 'cd /ein/sehr/langer/footer/pfad && exec bash'",
+	}}
+
+	got := naturalTableWidth(entries)
+	want := len([]rune(" [x] kurz  → zielbenutzer")) + 4
+	if got != want {
+		t.Fatalf("natürliche Tabellenbreite = %d, erwartet %d", got, want)
+	}
+	if got >= len([]rune(titleMain)) || got >= len([]rune(hostDetail(entries[0]))) {
+		t.Fatalf("Breite %d wurde von Titel oder Footer beeinflusst", got)
+	}
 }
 
 func TestHelpTextListsCommandsAndOptions(t *testing.T) {
@@ -32,6 +57,11 @@ func TestHelpTextListsCommandsAndOptions(t *testing.T) {
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("Hilfe enthält %q nicht", want)
+		}
+	}
+	for _, old := range []string{"Wortmarke", "Terminal"} {
+		if strings.Contains(got, old) {
+			t.Errorf("Hilfe enthält alte Banner-Auswahl %q", old)
 		}
 	}
 }
