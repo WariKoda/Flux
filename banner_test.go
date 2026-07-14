@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -52,6 +53,18 @@ func TestBannerSettingsRoundTrip(t *testing.T) {
 	if err := SaveBannerAlignmentName(alignPath, "right"); err != nil {
 		t.Fatal(err)
 	}
+	if info, err := os.Stat(filepath.Dir(bannerPath)); err != nil {
+		t.Fatal(err)
+	} else if got := info.Mode().Perm(); got != 0o700 {
+		t.Fatalf("Verzeichnismodus: %04o, erwartet 0700", got)
+	}
+	for _, path := range []string{bannerPath, alignPath} {
+		if info, err := os.Stat(path); err != nil {
+			t.Fatal(err)
+		} else if got := info.Mode().Perm(); got != 0o600 {
+			t.Fatalf("Dateimodus %s: %04o, erwartet 0600", path, got)
+		}
+	}
 	if got, err := LoadBannerName(bannerPath); err != nil || got != "terminal-mono" {
 		t.Fatalf("Banner: %q, %v", got, err)
 	}
@@ -72,14 +85,15 @@ func TestMissingBannerSettingsUseDefaults(t *testing.T) {
 
 func TestInvalidBannerSettingsFail(t *testing.T) {
 	for _, tc := range []struct {
-		name  string
-		value string
-		load  func(string) (string, error)
+		name        string
+		value       string
+		load        func(string) (string, error)
+		errorPrefix string
 	}{
-		{"leerer Banner", " \n", LoadBannerName},
-		{"unbekannter Banner", "wat\n", LoadBannerName},
-		{"leere Ausrichtung", "\n", LoadBannerAlignmentName},
-		{"unbekannte Ausrichtung", "diagonal\n", LoadBannerAlignmentName},
+		{"leerer Banner", " \n", LoadBannerName, "Banner-Datei nicht lesbar:"},
+		{"unbekannter Banner", "wat\n", LoadBannerName, "Banner-Datei nicht lesbar:"},
+		{"leere Ausrichtung", "\n", LoadBannerAlignmentName, "Banner-Ausrichtungsdatei nicht lesbar:"},
+		{"unbekannte Ausrichtung", "diagonal\n", LoadBannerAlignmentName, "Banner-Ausrichtungsdatei nicht lesbar:"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			path := filepath.Join(t.TempDir(), "setting")
@@ -88,6 +102,28 @@ func TestInvalidBannerSettingsFail(t *testing.T) {
 			}
 			if _, err := tc.load(path); err == nil {
 				t.Fatal("Fehler erwartet")
+			} else if !strings.HasPrefix(err.Error(), tc.errorPrefix) {
+				t.Fatalf("Fehler %q beginnt nicht mit %q", err, tc.errorPrefix)
+			}
+		})
+	}
+}
+
+func TestUnreadableBannerSettingsUseDistinctErrorContexts(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		load        func(string) (string, error)
+		errorPrefix string
+	}{
+		{"Banner", LoadBannerName, "Banner-Datei nicht lesbar:"},
+		{"Ausrichtung", LoadBannerAlignmentName, "Banner-Ausrichtungsdatei nicht lesbar:"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			path := t.TempDir()
+			if _, err := tc.load(path); err == nil {
+				t.Fatal("Fehler erwartet")
+			} else if !strings.HasPrefix(err.Error(), tc.errorPrefix) {
+				t.Fatalf("Fehler %q beginnt nicht mit %q", err, tc.errorPrefix)
 			}
 		})
 	}
