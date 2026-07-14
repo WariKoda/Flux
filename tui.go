@@ -105,7 +105,7 @@ func handleHelpKey(event *tcell.EventKey, state *tuiViewState) bool {
 	return true
 }
 
-func settingsStatus(theme Theme, banner Banner, alignment BannerAlignment) string {
+func settingsStatus(theme Theme, banner BannerMode, alignment BannerAlignment) string {
 	return fmt.Sprintf("Theme: %s · Banner: %s · Ausrichtung: %s", theme.DisplayName, banner.DisplayName, alignment.DisplayName)
 }
 
@@ -311,7 +311,7 @@ func runTUI(entries []HostEntry, excludes []string, excludePath, themeName, them
 
 	refreshBanner := func() {
 		th := themes[themeIdx]
-		bannerView.SetText(renderBanner(banners[bannerIdx], th))
+		bannerView.SetText(renderBanner(compactBanner, banners[bannerIdx], th))
 		bannerView.SetTextAlign(bannerAlignments[alignmentIdx].TViewAlign)
 		bannerView.SetBackgroundColor(th.Background)
 		row, _ := table.GetSelection()
@@ -426,9 +426,9 @@ func runTUI(entries []HostEntry, excludes []string, excludePath, themeName, them
 		AddItem(bodyPages, totalRows+2, 0, true).
 		AddItem(footer, 1, 0, false)
 	bannerGap := tview.NewBox()
-	bannerSize := bannerHeight(banners[bannerIdx]) + 1
+	bannerSize := bannerHeight(compactBanner) + 1
 	bannerStack := tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(bannerView, bannerHeight(banners[bannerIdx]), 0, false).
+		AddItem(bannerView, bannerHeight(compactBanner), 0, false).
 		AddItem(bannerGap, 1, 0, false).
 		AddItem(content, height, 0, true)
 	inner := tview.NewFlex().SetDirection(tview.FlexRow).
@@ -443,8 +443,8 @@ func runTUI(entries []HostEntry, excludes []string, excludePath, themeName, them
 	app.SetBeforeDrawFunc(func(screen tcell.Screen) bool {
 		_, screenHeight := screen.Size()
 		size := 0
-		if bannerVisible(screenHeight, height, banners[bannerIdx]) {
-			size = bannerHeight(banners[bannerIdx]) + 1
+		if bannerVisible(screenHeight, height, compactBanner) {
+			size = bannerHeight(compactBanner) + 1
 		}
 		bannerStack.ResizeItem(bannerView, max(0, size-1), 0)
 		gapSize := 0

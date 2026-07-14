@@ -14,8 +14,8 @@ func TestMainTitlesAdvertiseHelp(t *testing.T) {
 }
 
 func TestFooterSettingsText(t *testing.T) {
-	got := settingsStatus(themes[0], banners[2], bannerAlignments[2])
-	for _, want := range []string{"Theme: Dunkel", "Banner: Terminal · ANSI", "Ausrichtung: Rechts"} {
+	got := settingsStatus(themes[0], banners[0], bannerAlignments[2])
+	for _, want := range []string{"Theme: Dunkel", "Banner: ANSI", "Ausrichtung: Rechts"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("Status enthält %q nicht: %q", want, got)
 		}
@@ -27,7 +27,7 @@ func TestHelpTextListsCommandsAndOptions(t *testing.T) {
 	for _, want := range []string{
 		"Tippen", "Suche", "Backspace", "Pfeil ↑/↓", "Home/End", "Enter",
 		"Linksklick", "Mausrad", "Ctrl+E", "Ctrl+T", "Ctrl+B", "Ctrl+A",
-		"Ctrl+O", "Esc", "Wortmarke · ANSI", "Terminal · Monochrom",
+		"Ctrl+O", "Esc", "ANSI", "Monochrom",
 		"Links", "Mitte", "Rechts", "Okabe-Ito Dunkel",
 	} {
 		if !strings.Contains(got, want) {
