@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -16,6 +17,10 @@ type HostEntry struct {
 	Aliases  []string
 	HostName string
 	User     string
+	Port     string
+	// RemoteCommand wird nach dem Login ausgeführt (z. B. su auf einen
+	// weiteren User + cd in einen Ordner) und nur zur Anzeige ausgewertet.
+	RemoteCommand string
 }
 
 // ParseSSHConfig liest die ssh_config unter path und liefert alle Host-Blöcke.
@@ -74,6 +79,14 @@ func ParseSSHConfig(path string) ([]HostEntry, error) {
 		case "user":
 			if current != nil {
 				current.User = unquote(value)
+			}
+		case "port":
+			if current != nil {
+				current.Port = unquote(value)
+			}
+		case "remotecommand":
+			if current != nil {
+				current.RemoteCommand = value
 			}
 		default:
 			// Andere gültige ssh_config-Direktiven sind für die Anzeige irrelevant.
@@ -147,6 +160,74 @@ func FilterHosts(entries []HostEntry, excludes []string) []HostEntry {
 		}
 	}
 	return result
+}
+
+// ExcludeState trennt die Ausschlussliste in bekannte Blöcke (Schlüssel:
+// erster Alias) und unbekannte Alt-Einträge, die beim Speichern erhalten
+// bleiben, damit die Filter-UI keine fremden Zeilen verwirft.
+type ExcludeState struct {
+	Excluded map[string]bool
+	Unknown  []string
+}
+
+// NewExcludeState ordnet jeden Ausschluss-Eintrag dem passenden Host-Block zu
+// (Treffer auf einen beliebigen Alias des Blocks).
+func NewExcludeState(entries []HostEntry, excludes []string) ExcludeState {
+	known := map[string]string{}
+	for _, e := range entries {
+		for _, a := range e.Aliases {
+			known[a] = e.Alias
+		}
+	}
+	state := ExcludeState{Excluded: map[string]bool{}}
+	for _, x := range excludes {
+		if primary, ok := known[x]; ok {
+			state.Excluded[primary] = true
+		} else {
+			state.Unknown = append(state.Unknown, x)
+		}
+	}
+	return state
+}
+
+// List baut die zu speichernde Ausschlussliste: ausgeschlossene Blöcke in
+// entries-Reihenfolge, danach die unbekannten Alt-Einträge.
+func (s ExcludeState) List(entries []HostEntry) []string {
+	var out []string
+	for _, e := range entries {
+		if s.Excluded[e.Alias] {
+			out = append(out, e.Alias)
+		}
+	}
+	return append(out, s.Unknown...)
+}
+
+// Visible liefert die nicht ausgeschlossenen Einträge.
+func (s ExcludeState) Visible(entries []HostEntry) []HostEntry {
+	var out []HostEntry
+	for _, e := range entries {
+		if !s.Excluded[e.Alias] {
+			out = append(out, e)
+		}
+	}
+	return out
+}
+
+// SaveExcludes schreibt die Ausschlussliste. Die Datei wird komplett neu
+// erzeugt; Kommentare einer von Hand gepflegten Datei bleiben nicht erhalten.
+func SaveExcludes(path string, excludes []string) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return fmt.Errorf("Ausschluss-Verzeichnis nicht anlegbar: %w", err)
+	}
+	var b strings.Builder
+	b.WriteString("# Von Flux verwaltete Ausschlussliste (ein Alias pro Zeile).\n")
+	for _, e := range excludes {
+		b.WriteString(e + "\n")
+	}
+	if err := os.WriteFile(path, []byte(b.String()), 0o600); err != nil {
+		return fmt.Errorf("Ausschlussliste nicht speicherbar: %w", err)
+	}
+	return nil
 }
 
 // LoadExcludes liest die Ausschlussliste (ein Alias pro Zeile, '#'-Kommentare).
