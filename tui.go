@@ -46,6 +46,58 @@ const (
 	titleEdit = " Flux · Filter — Enter/Klick/Leertaste: umschalten · ^E/Esc: fertig "
 )
 
+type tuiViewState struct {
+	HelpVisible bool
+}
+
+func helpText() string {
+	bannerNames := make([]string, len(banners))
+	for i, banner := range banners {
+		bannerNames[i] = banner.DisplayName
+	}
+	alignmentNames := make([]string, len(bannerAlignments))
+	for i, alignment := range bannerAlignments {
+		alignmentNames[i] = alignment.DisplayName
+	}
+	themeNames := make([]string, len(themes))
+	for i, theme := range themes {
+		themeNames[i] = theme.DisplayName
+	}
+
+	return strings.Join([]string{
+		"Navigation",
+		"Enter/Klick  Verbinden",
+		"Esc          Zurück / Beenden",
+		"",
+		"Ansichten",
+		"Ctrl+E  Filter",
+		"Ctrl+H  Hilfe",
+		"",
+		"Banner",
+		"Ctrl+B  " + strings.Join(bannerNames, " · "),
+		"",
+		"Ausrichtung",
+		"Ctrl+A  " + strings.Join(alignmentNames, " · "),
+		"",
+		"Themes",
+		"Ctrl+T  " + strings.Join(themeNames, " · "),
+	}, "\n")
+}
+
+func handleHelpKey(event *tcell.EventKey, state *tuiViewState) bool {
+	if event.Key() == tcell.KeyCtrlH {
+		state.HelpVisible = !state.HelpVisible
+		return true
+	}
+	if !state.HelpVisible {
+		return false
+	}
+	if event.Key() == tcell.KeyEscape {
+		state.HelpVisible = false
+	}
+	return true
+}
+
 // hostShortDetail liefert die Kurzinfo-Spalte eines Hosts (effektiver su-User).
 func hostShortDetail(h HostEntry) string {
 	if h.RemoteCommand == "" {
