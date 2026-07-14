@@ -3,9 +3,79 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/gdamore/tcell/v2"
 )
+
+var bannerTagPattern = regexp.MustCompile(`\[[^]]*\]`)
+
+func stripTags(text string) string {
+	return bannerTagPattern.ReplaceAllString(text, "")
+}
+
+func TestMonochromeBannerUsesThemeHeader(t *testing.T) {
+	th := Theme{Header: tcell.NewHexColor(0x123456)}
+	got := renderBanner(banners[1], th)
+	if !strings.Contains(got, "[#123456]") {
+		t.Fatalf("Theme-Farbe fehlt: %q", got)
+	}
+	if strings.Contains(got, "[#ff5555]") {
+		t.Fatalf("ANSI-Farbe in Monochrom-Banner: %q", got)
+	}
+}
+
+func TestANSIBannerIsThemeIndependent(t *testing.T) {
+	a := renderBanner(banners[0], Theme{Header: tcell.ColorRed})
+	b := renderBanner(banners[0], Theme{Header: tcell.ColorBlue})
+	if a != b {
+		t.Fatalf("ANSI-Banner darf sich mit Theme nicht ändern")
+	}
+	if !strings.Contains(a, "[#ff5555]") || !strings.Contains(a, "[#8be9fd]") {
+		t.Fatalf("ANSI-Palette fehlt: %q", a)
+	}
+}
+
+func TestANSIBannerPreservesCombiningRunes(t *testing.T) {
+	b := Banner{Rows: []string{"a\u0301"}, ColorMode: bannerANSI}
+	if got := renderBanner(b, Theme{}); got != "[#ff5555]a\u0301" {
+		t.Fatalf("kombinierte Rune nicht zusammenhängend erhalten: %q", got)
+	}
+}
+
+func TestBannerVisibilityRequiresWholeBannerAndGap(t *testing.T) {
+	b := banners[2]
+	if !bannerVisible(15, 10, b) {
+		t.Fatal("4 Zeilen + Abstand müssen exakt passen")
+	}
+	if bannerVisible(14, 10, b) {
+		t.Fatal("eine Zeile zu wenig muss Banner ausblenden")
+	}
+}
+
+func TestAlignedBannerText(t *testing.T) {
+	b := Banner{Rows: []string{"FLUX"}, ColorMode: bannerMonochrome}
+	th := Theme{Header: tcell.ColorGreen}
+	if got := stripTags(alignedBannerText(b, 8, bannerAlignments[0], th)); got != "FLUX" {
+		t.Errorf("links: %q", got)
+	}
+	if got := stripTags(alignedBannerText(b, 8, bannerAlignments[1], th)); got != "  FLUX" {
+		t.Errorf("mitte: %q", got)
+	}
+	if got := stripTags(alignedBannerText(b, 8, bannerAlignments[2], th)); got != "    FLUX" {
+		t.Errorf("rechts: %q", got)
+	}
+}
+
+func TestAlignedBannerTextUsesDisplayWidth(t *testing.T) {
+	b := Banner{Rows: []string{"界"}, ColorMode: bannerMonochrome}
+	got := stripTags(alignedBannerText(b, 4, bannerAlignments[1], Theme{Header: tcell.ColorGreen}))
+	if got != " 界" {
+		t.Fatalf("Unicode-Anzeigebreite nicht berücksichtigt: %q", got)
+	}
+}
 
 func TestBannerDefinitionsAndCycleOrder(t *testing.T) {
 	want := []string{"wordmark-ansi", "wordmark-mono", "terminal-ansi", "terminal-mono"}

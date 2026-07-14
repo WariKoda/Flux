@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/mattn/go-runewidth"
 	"github.com/rivo/tview"
 )
 
@@ -38,6 +39,75 @@ var bannerAlignments = []BannerAlignment{
 	{"left", "Links", tview.AlignLeft},
 	{"center", "Mitte", tview.AlignCenter},
 	{"right", "Rechts", tview.AlignRight},
+}
+
+var bannerANSIColors = []string{"#ff5555", "#f1fa8c", "#50fa7b", "#8be9fd", "#6272a4", "#bd93f9", "#ff79c6", "#ffb86c"}
+
+func renderBanner(banner Banner, theme Theme) string {
+	return renderBannerRows(banner.Rows, banner.ColorMode, theme)
+}
+
+func renderBannerRows(rows []string, colorMode BannerColorMode, theme Theme) string {
+	rendered := make([]string, len(rows))
+	for i, row := range rows {
+		if colorMode == bannerMonochrome {
+			rendered[i] = fmt.Sprintf("[#%06x]%s", theme.Header.Hex(), row)
+			continue
+		}
+
+		rowWidth := runewidth.StringWidth(row)
+		position := 0
+		lastColor := -1
+		var output strings.Builder
+		for _, r := range row {
+			runeWidth := runewidth.RuneWidth(r)
+			colorPosition := position
+			if runeWidth == 0 && colorPosition > 0 {
+				colorPosition--
+			}
+			color := min(colorPosition*len(bannerANSIColors)/max(1, rowWidth), len(bannerANSIColors)-1)
+			if color != lastColor {
+				output.WriteString("[")
+				output.WriteString(bannerANSIColors[color])
+				output.WriteString("]")
+				lastColor = color
+			}
+			output.WriteRune(r)
+			position += runeWidth
+		}
+		rendered[i] = output.String()
+	}
+	return strings.Join(rendered, "\n")
+}
+
+func bannerHeight(banner Banner) int {
+	return len(banner.Rows)
+}
+
+func bannerVisible(screenHeight, tuiHeight int, banner Banner) bool {
+	return screenHeight >= tuiHeight+bannerHeight(banner)+1
+}
+
+func alignedBannerText(banner Banner, width int, alignment BannerAlignment, theme Theme) string {
+	rows := make([]string, len(banner.Rows))
+	for i, row := range banner.Rows {
+		rowWidth := runewidth.StringWidth(row)
+		if width <= rowWidth {
+			rows[i] = row
+			continue
+		}
+
+		padding := width - rowWidth
+		switch alignment.TViewAlign {
+		case tview.AlignCenter:
+			padding /= 2
+		case tview.AlignRight:
+		default:
+			padding = 0
+		}
+		rows[i] = strings.Repeat(" ", padding) + row
+	}
+	return renderBannerRows(rows, banner.ColorMode, theme)
 }
 
 func bannerIndex(name string) (int, error) {
