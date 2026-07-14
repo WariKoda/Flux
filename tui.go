@@ -67,8 +67,14 @@ func helpText() string {
 
 	return strings.Join([]string{
 		"Navigation",
-		"Enter/Klick  Verbinden",
-		"Esc          Zurück / Beenden",
+		"Tippen       Suche eingrenzen",
+		"Backspace    Suchzeichen löschen",
+		"Pfeil ↑/↓    Auswahl bewegen",
+		"Home/End     Erste / letzte Auswahl",
+		"Enter        Verbinden / umschalten",
+		"Linksklick   Auswählen / verbinden / umschalten",
+		"Mausrad      Auswahl / Hilfe scrollen",
+		"Esc          Suche löschen / zurück / beenden",
 		"",
 		"Ansichten",
 		"Ctrl+E  Filter",

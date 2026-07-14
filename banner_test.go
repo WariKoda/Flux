@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -42,6 +43,13 @@ func TestANSIBannerPreservesCombiningRunes(t *testing.T) {
 	b := Banner{Rows: []string{"a\u0301"}, ColorMode: bannerANSI}
 	if got := renderBanner(b, Theme{}); got != "[#ff5555]a\u0301" {
 		t.Fatalf("kombinierte Rune nicht zusammenhängend erhalten: %q", got)
+	}
+}
+
+func TestANSIBannerPreservesWideRuneColorForCombiningMark(t *testing.T) {
+	b := Banner{Rows: []string{"界\u0301"}, ColorMode: bannerANSI}
+	if got := renderBanner(b, Theme{}); got != "[#ff5555]界\u0301" {
+		t.Fatalf("kombinierte Rune nach breiter Basis wechselte die Farbe: %q", got)
 	}
 }
 
@@ -94,6 +102,9 @@ func TestBannerDefinitionsAndCycleOrder(t *testing.T) {
 
 func TestBannerAlignmentDefinitionsAndCycleOrder(t *testing.T) {
 	want := []string{"left", "center", "right"}
+	if len(bannerAlignments) != len(want) {
+		t.Fatalf("%d Ausrichtungen erwartet, %d erhalten", len(want), len(bannerAlignments))
+	}
 	for i, name := range want {
 		if bannerAlignments[i].Name != name {
 			t.Errorf("Ausrichtung %d: %q erwartet, %q erhalten", i, name, bannerAlignments[i].Name)
@@ -101,6 +112,28 @@ func TestBannerAlignmentDefinitionsAndCycleOrder(t *testing.T) {
 	}
 	if got := nextIndex(2, len(bannerAlignments)); got != 0 {
 		t.Errorf("Wraparound: 0 erwartet, %d erhalten", got)
+	}
+}
+
+func TestBannerAndAlignmentLookup(t *testing.T) {
+	if got, err := bannerIndex("terminal-ansi"); err != nil || got != 2 {
+		t.Fatalf("Banner-Lookup: Index %d, Fehler %v", got, err)
+	}
+	if got, err := bannerAlignmentIndex("center"); err != nil || got != 1 {
+		t.Fatalf("Ausrichtungs-Lookup: Index %d, Fehler %v", got, err)
+	}
+}
+
+func TestNextIndexPanicsForNonPositiveLength(t *testing.T) {
+	for _, length := range []int{0, -1} {
+		t.Run(fmt.Sprintf("length_%d", length), func(t *testing.T) {
+			defer func() {
+				if recover() == nil {
+					t.Fatalf("nextIndex muss für Länge %d panic auslösen", length)
+				}
+			}()
+			nextIndex(0, length)
+		})
 	}
 }
 

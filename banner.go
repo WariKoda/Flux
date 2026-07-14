@@ -62,10 +62,10 @@ func renderBannerRows(rows []string, colorMode BannerColorMode, theme Theme) str
 		for _, r := range row {
 			runeWidth := runewidth.RuneWidth(r)
 			colorPosition := position
-			if runeWidth == 0 && colorPosition > 0 {
-				colorPosition--
+			color := lastColor
+			if runeWidth != 0 || lastColor < 0 {
+				color = min(colorPosition*len(bannerANSIColors)/max(1, rowWidth), len(bannerANSIColors)-1)
 			}
-			color := min(colorPosition*len(bannerANSIColors)/max(1, rowWidth), len(bannerANSIColors)-1)
 			if color != lastColor {
 				output.WriteString("[")
 				output.WriteString(bannerANSIColors[color])

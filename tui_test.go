@@ -24,7 +24,12 @@ func TestFooterSettingsText(t *testing.T) {
 
 func TestHelpTextListsCommandsAndOptions(t *testing.T) {
 	got := helpText()
-	for _, want := range []string{"Ctrl+E", "Ctrl+T", "Ctrl+B", "Ctrl+A", "Ctrl+O", "Esc", "Wortmarke · ANSI", "Terminal · Monochrom", "Links", "Mitte", "Rechts", "Okabe-Ito Dunkel"} {
+	for _, want := range []string{
+		"Tippen", "Suche", "Backspace", "Pfeil ↑/↓", "Home/End", "Enter",
+		"Linksklick", "Mausrad", "Ctrl+E", "Ctrl+T", "Ctrl+B", "Ctrl+A",
+		"Ctrl+O", "Esc", "Wortmarke · ANSI", "Terminal · Monochrom",
+		"Links", "Mitte", "Rechts", "Okabe-Ito Dunkel",
+	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("Hilfe enthält %q nicht", want)
 		}
