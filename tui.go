@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/mattn/go-runewidth"
 	"github.com/rivo/tview"
 )
 
@@ -105,8 +106,20 @@ func handleHelpKey(event *tcell.EventKey, state *tuiViewState) bool {
 	return true
 }
 
-func settingsStatus(theme Theme, banner Banner, alignment BannerAlignment) string {
+func settingsStatus(theme Theme, banner BannerMode, alignment BannerAlignment) string {
 	return fmt.Sprintf("Theme: %s · Banner: %s · Ausrichtung: %s", theme.DisplayName, banner.DisplayName, alignment.DisplayName)
+}
+
+func naturalTableWidth(entries []HostEntry) int {
+	maxLine := 0
+	for _, group := range groupHosts(entries) {
+		maxLine = max(maxLine, runewidth.StringWidth("─ "+group.Server+" "))
+		for _, host := range group.Hosts {
+			line := " [x] " + host.Alias + "  " + hostShortDetail(host)
+			maxLine = max(maxLine, runewidth.StringWidth(line))
+		}
+	}
+	return maxLine + 4
 }
 
 // hostShortDetail liefert die Kurzinfo-Spalte eines Hosts (effektiver su-User).
@@ -182,7 +195,7 @@ func runTUI(entries []HostEntry, excludes []string, excludePath, themeName, them
 	table.SetBorder(true)
 
 	searchBar := tview.NewTextView()
-	footer := tview.NewTextView()
+	footer := tview.NewTextView().SetWrap(true).SetWordWrap(true)
 	bannerView := tview.NewTextView().SetDynamicColors(true)
 	helpView := tview.NewTextView().SetScrollable(true)
 	helpView.SetBorder(true).SetTitle(titleHelp)
@@ -311,8 +324,6 @@ func runTUI(entries []HostEntry, excludes []string, excludePath, themeName, them
 
 	refreshBanner := func() {
 		th := themes[themeIdx]
-		bannerView.SetText(renderBanner(banners[bannerIdx], th))
-		bannerView.SetTextAlign(bannerAlignments[alignmentIdx].TViewAlign)
 		bannerView.SetBackgroundColor(th.Background)
 		row, _ := table.GetSelection()
 		footer.SetText(footerText(row))
@@ -378,81 +389,53 @@ func runTUI(entries []HostEntry, excludes []string, excludePath, themeName, them
 	})
 	setMode(mode)
 
-	// Fenstermaße aus der Filter-Ansicht ableiten (Obermenge aller Zeilen).
-	// Auch die Fußzeile zählt mit, damit die Detailanzeige nie abgeschnitten
-	// wird.
-	longestSettings := ""
-	for _, th := range themes {
-		for _, banner := range banners {
-			for _, alignment := range bannerAlignments {
-				status := settingsStatus(th, banner, alignment)
-				if len([]rune(status)) > len([]rune(longestSettings)) {
-					longestSettings = status
-				}
-			}
-		}
-	}
-	maxLine := len([]rune(titleMain))
-	if l := len([]rune(titleEdit)); l > maxLine {
-		maxLine = l
-	}
 	totalRows := 0
-	footerMax := 0
 	for _, g := range groupHosts(entries) {
-		if l := len([]rune("─ " + g.Server + " ")); l > maxLine {
-			maxLine = l
-		}
 		totalRows++
-		for _, h := range g.Hosts {
-			line := " [x] " + h.Alias + "  " + hostShortDetail(h)
-			if l := len([]rune(line)); l > maxLine {
-				maxLine = l
-			}
-			footerLine := " ausgeblendet · " + hostDetail(h) + " │ " + longestSettings
-			if l := len([]rune(footerLine)); l > footerMax {
-				footerMax = l
-			}
-			totalRows++
-		}
+		totalRows += len(g.Hosts)
 	}
-	width := maxLine + 4
-	if footerMax+1 > width {
-		width = footerMax + 1
-	}
-	height := totalRows + 4 // Rahmen (2) + Suchzeile (1) + Fußzeile (1)
 
 	content := tview.NewFlex().SetDirection(tview.FlexRow).
 		AddItem(searchBar, 1, 0, false).
-		AddItem(bodyPages, totalRows+2, 0, true).
+		AddItem(bodyPages, minBodyHeight+borderHeight, 0, true).
 		AddItem(footer, 1, 0, false)
 	bannerGap := tview.NewBox()
-	bannerSize := bannerHeight(banners[bannerIdx]) + 1
 	bannerStack := tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(bannerView, bannerHeight(banners[bannerIdx]), 0, false).
-		AddItem(bannerGap, 1, 0, false).
-		AddItem(content, height, 0, true)
+		AddItem(bannerView, 0, 0, false).
+		AddItem(bannerGap, 0, 0, false).
+		AddItem(content, minBodyHeight+borderHeight+searchHeight+1, 0, true)
 	inner := tview.NewFlex().SetDirection(tview.FlexRow).
 		AddItem(nil, 0, 1, false).
-		AddItem(bannerStack, height+bannerSize, 0, true).
+		AddItem(bannerStack, minBodyHeight+borderHeight+searchHeight+1, 0, true).
 		AddItem(nil, 0, 1, false)
 	outer := tview.NewFlex().SetDirection(tview.FlexColumn).
 		AddItem(nil, 0, 1, false).
-		AddItem(inner, width, 0, true).
+		AddItem(inner, 1, 0, true).
 		AddItem(nil, 0, 1, false)
 
 	app.SetBeforeDrawFunc(func(screen tcell.Screen) bool {
-		_, screenHeight := screen.Size()
-		size := 0
-		if bannerVisible(screenHeight, height, banners[bannerIdx]) {
-			size = bannerHeight(banners[bannerIdx]) + 1
+		screenWidth, screenHeight := screen.Size()
+		row, _ := table.GetSelection()
+		currentFooter := footerText(row)
+		layout := calculateTUILayout(screenWidth, screenHeight, naturalTableWidth(entries), totalRows, currentFooter)
+		footer.SetText(currentFooter)
+
+		visibleBannerHeight, gapHeight := 0, 0
+		if layout.Banner == nil {
+			bannerView.SetText("")
+		} else {
+			visibleBannerHeight = bannerHeight(*layout.Banner)
+			gapHeight = bannerGapHeight
+			bannerView.SetText(alignedBannerText(*layout.Banner, banners[bannerIdx], layout.Width, bannerAlignments[alignmentIdx], themes[themeIdx]))
 		}
-		bannerStack.ResizeItem(bannerView, max(0, size-1), 0)
-		gapSize := 0
-		if size > 0 {
-			gapSize = 1
-		}
-		bannerStack.ResizeItem(bannerGap, gapSize, 0)
-		inner.ResizeItem(bannerStack, height+size, 0)
+
+		bannerStack.ResizeItem(bannerView, visibleBannerHeight, 0)
+		bannerStack.ResizeItem(bannerGap, gapHeight, 0)
+		content.ResizeItem(bodyPages, layout.BodyHeight+borderHeight, 0)
+		content.ResizeItem(footer, layout.FooterHeight, 0)
+		bannerStack.ResizeItem(content, layout.WindowHeight, 0)
+		outer.ResizeItem(inner, layout.Width, 0)
+		inner.ResizeItem(bannerStack, layout.WindowHeight+visibleBannerHeight+gapHeight, 0)
 		return false
 	})
 
