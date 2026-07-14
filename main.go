@@ -32,14 +32,22 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("Config-Verzeichnis nicht bestimmbar: %w", err)
 	}
-	excludes, err := LoadExcludes(filepath.Join(configDir, "flux", "exclude"))
+	excludePath := filepath.Join(configDir, "flux", "exclude")
+	excludes, err := LoadExcludes(excludePath)
+	if err != nil {
+		return err
+	}
+	themePath := filepath.Join(configDir, "flux", "theme")
+	themeName, err := LoadThemeName(themePath)
 	if err != nil {
 		return err
 	}
 
-	hosts := FilterHosts(entries, excludes)
-	if len(hosts) == 0 {
-		return fmt.Errorf("keine anzeigbaren Hosts in %s (nach Wildcard- und Ausschlussfilter)", configPath)
+	// Wildcard-Blöcke sind nie anzeigbar; Ausschlüsse verwaltet die
+	// Filter-Sub-UI in runTUI selbst.
+	candidates := FilterHosts(entries, nil)
+	if len(candidates) == 0 {
+		return fmt.Errorf("keine anzeigbaren Hosts in %s (nur Wildcard-Blöcke)", configPath)
 	}
 
 	sshPath, err := exec.LookPath("ssh")
@@ -47,7 +55,7 @@ func run() error {
 		return fmt.Errorf("ssh nicht im PATH: %w", err)
 	}
 
-	selected, err := runTUI(hosts)
+	selected, err := runTUI(candidates, excludes, excludePath, themeName, themePath)
 	if err != nil {
 		return err
 	}
