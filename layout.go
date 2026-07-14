@@ -26,6 +26,7 @@ type tuiLayout struct {
 func calculateTUILayout(screenWidth, screenHeight, naturalWidth, preferredBodyHeight int, footerText string) tuiLayout {
 	widthCap := max(1, min(maxTUIWidth, screenWidth-2*horizontalMargin))
 	desiredWidth := max(1, naturalWidth)
+	// The approved large and compact forms have equal width, so selection currently differs by height.
 	for _, form := range []BannerForm{largeBanner, compactBanner} {
 		formWidth := bannerFormWidth(form)
 		if formWidth <= widthCap {
@@ -46,7 +47,14 @@ func calculateTUILayout(screenWidth, screenHeight, naturalWidth, preferredBodyHe
 		bodyReduction := min(overflow, bodyHeight-minBodyHeight)
 		bodyHeight -= bodyReduction
 		overflow -= bodyReduction
-		footerHeight = max(0, footerHeight-overflow)
+
+		footerReduction := min(overflow, footerHeight)
+		footerHeight -= footerReduction
+		overflow -= footerReduction
+
+		// Tiny terminals keep fixed border/search rows where possible, then use any
+		// remaining row for the body; only they may reduce it below the minimum.
+		bodyHeight -= min(overflow, bodyHeight)
 	}
 
 	remainingHeight := screenHeight - 2*verticalMargin - windowHeight

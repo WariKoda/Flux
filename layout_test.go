@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -22,6 +23,47 @@ func TestFooterWrapDoesNotChangeWidth(t *testing.T) {
 	}
 	if long.FooterHeight <= short.FooterHeight {
 		t.Fatalf("Footer brach nicht um")
+	}
+}
+
+func TestConstrainedLayoutPreservesMinimumBodyAndAllocatesWrappedFooter(t *testing.T) {
+	screenHeight := 2*verticalMargin + borderHeight + searchHeight + minBodyHeight + 4
+	layout := calculateTUILayout(40, screenHeight, 20, 50, strings.Repeat("footer ", 100))
+
+	if layout.BodyHeight < minBodyHeight {
+		t.Fatalf("BodyHeight = %d, mindestens %d erwartet", layout.BodyHeight, minBodyHeight)
+	}
+	if layout.FooterHeight != 4 {
+		t.Fatalf("FooterHeight = %d, 4 erwartet", layout.FooterHeight)
+	}
+	if got := borderHeight + searchHeight + layout.BodyHeight + layout.FooterHeight; got != layout.WindowHeight {
+		t.Fatalf("Komponentenhöhe = %d, WindowHeight = %d", got, layout.WindowHeight)
+	}
+}
+
+func TestTinyTerminalLayoutReconcilesWithoutNegativeSizes(t *testing.T) {
+	for screenHeight := 0; screenHeight < 2*verticalMargin+borderHeight+searchHeight+minBodyHeight; screenHeight++ {
+		t.Run(fmt.Sprintf("height_%d", screenHeight), func(t *testing.T) {
+			layout := calculateTUILayout(40, screenHeight, 20, 50, strings.Repeat("footer ", 100))
+			allocatedFixedHeight := min(borderHeight+searchHeight, layout.WindowHeight)
+			wantBodyHeight := layout.WindowHeight - allocatedFixedHeight
+
+			if layout.BodyHeight < 0 || layout.FooterHeight < 0 || layout.WindowHeight < 0 {
+				t.Fatalf("negative Größe: %+v", layout)
+			}
+			if got := allocatedFixedHeight + layout.BodyHeight + layout.FooterHeight; got != layout.WindowHeight {
+				t.Fatalf("Komponentenhöhe = %d, WindowHeight = %d", got, layout.WindowHeight)
+			}
+			if layout.BodyHeight != wantBodyHeight || layout.FooterHeight != 0 {
+				t.Fatalf("Body/Footer = %d/%d, %d/0 erwartet", layout.BodyHeight, layout.FooterHeight, wantBodyHeight)
+			}
+			if layout.WindowHeight >= borderHeight+searchHeight+minBodyHeight && layout.BodyHeight < minBodyHeight {
+				t.Fatalf("BodyHeight = %d trotz Platz für Minimum", layout.BodyHeight)
+			}
+			if layout.Banner != nil {
+				t.Fatalf("Banner = %s, hidden erwartet", bannerName(layout.Banner))
+			}
+		})
 	}
 }
 
