@@ -8,8 +8,8 @@ import (
 )
 
 func TestMainTitlesAdvertiseHelp(t *testing.T) {
-	if !strings.Contains(titleMain, "^H: Hilfe") || !strings.Contains(titleEdit, "^H: Hilfe") {
-		t.Fatal("Hilfe-Shortcut fehlt im Titel")
+	if !strings.Contains(titleMain, "^O: Optionen") || !strings.Contains(titleEdit, "^O: Optionen") {
+		t.Fatal("Optionen-Shortcut fehlt im Titel")
 	}
 }
 
@@ -24,7 +24,7 @@ func TestFooterSettingsText(t *testing.T) {
 
 func TestHelpTextListsCommandsAndOptions(t *testing.T) {
 	got := helpText()
-	for _, want := range []string{"Ctrl+E", "Ctrl+T", "Ctrl+B", "Ctrl+A", "Ctrl+H", "Esc", "Wortmarke · ANSI", "Terminal · Monochrom", "Links", "Mitte", "Rechts", "Okabe-Ito Dunkel"} {
+	for _, want := range []string{"Ctrl+E", "Ctrl+T", "Ctrl+B", "Ctrl+A", "Ctrl+O", "Esc", "Wortmarke · ANSI", "Terminal · Monochrom", "Links", "Mitte", "Rechts", "Okabe-Ito Dunkel"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("Hilfe enthält %q nicht", want)
 		}
@@ -33,13 +33,25 @@ func TestHelpTextListsCommandsAndOptions(t *testing.T) {
 
 func TestHelpInputRules(t *testing.T) {
 	state := tuiViewState{}
-	if !handleHelpKey(tcell.NewEventKey(tcell.KeyCtrlH, 0, 0), &state) || !state.HelpVisible {
-		t.Fatal("Ctrl+H muss Hilfe öffnen")
+	for _, key := range []tcell.Key{tcell.KeyBackspace, tcell.KeyBackspace2, tcell.KeyEscape} {
+		if handleHelpKey(tcell.NewEventKey(key, 0, 0), &state) {
+			t.Fatalf("%v darf bei geschlossenen Optionen nicht konsumiert werden", key)
+		}
+	}
+	if handleHelpKey(tcell.NewEventKey(tcell.KeyRune, 'x', 0), &state) {
+		t.Fatal("Unbeteiligte Eingabe darf bei geschlossenen Optionen nicht konsumiert werden")
+	}
+	if !handleHelpKey(tcell.NewEventKey(tcell.KeyCtrlO, 0, 0), &state) || !state.HelpVisible {
+		t.Fatal("Ctrl+O muss Optionen öffnen")
 	}
 	if !handleHelpKey(tcell.NewEventKey(tcell.KeyRune, 'x', 0), &state) || !state.HelpVisible {
 		t.Fatal("Eingabe muss konsumiert werden")
 	}
+	if !handleHelpKey(tcell.NewEventKey(tcell.KeyCtrlO, 0, 0), &state) || state.HelpVisible {
+		t.Fatal("Ctrl+O muss Optionen schließen")
+	}
+	state.HelpVisible = true
 	if !handleHelpKey(tcell.NewEventKey(tcell.KeyEscape, 0, 0), &state) || state.HelpVisible {
-		t.Fatal("Esc muss Hilfe schließen")
+		t.Fatal("Esc muss Optionen schließen")
 	}
 }

@@ -42,9 +42,9 @@ const (
 )
 
 const (
-	titleMain = " Flux — Tippen: suchen · Enter/Klick: verbinden · ^E: Filter · ^T: Theme · ^H: Hilfe · Esc: beenden "
-	titleEdit = " Flux · Filter — Enter/Klick/Leertaste: umschalten · ^E/Esc: fertig · ^H: Hilfe "
-	titleHelp = " Flux · Hilfe — ^H/Esc: zurück "
+	titleMain = " Flux — Tippen: suchen · Enter/Klick: verbinden · ^E: Filter · ^T: Theme · ^O: Optionen · Esc: beenden "
+	titleEdit = " Flux · Filter — Enter/Klick/Leertaste: umschalten · ^E/Esc: fertig · ^O: Optionen "
+	titleHelp = " Flux · Optionen — ^O/Esc: zurück "
 )
 
 type tuiViewState struct {
@@ -72,7 +72,7 @@ func helpText() string {
 		"",
 		"Ansichten",
 		"Ctrl+E  Filter",
-		"Ctrl+H  Hilfe",
+		"Ctrl+O  Optionen",
 		"",
 		"Banner",
 		"Ctrl+B  " + strings.Join(bannerNames, " · "),
@@ -86,7 +86,7 @@ func helpText() string {
 }
 
 func handleHelpKey(event *tcell.EventKey, state *tuiViewState) bool {
-	if event.Key() == tcell.KeyCtrlH {
+	if event.Key() == tcell.KeyCtrlO {
 		state.HelpVisible = !state.HelpVisible
 		return true
 	}
@@ -150,7 +150,7 @@ func hostMatches(h HostEntry, lowerQuery string) bool {
 // Fenster an und liefert den gewählten Alias. Ein leerer String bedeutet:
 // Nutzer hat ohne Auswahl beendet (Esc). Tippen filtert sofort; '^T'
 // wechselt das Theme (persistiert unter themePath), '^B' den Banner und '^A'
-// dessen Ausrichtung. '^H' öffnet die Hilfe, '^E' die Filter-Sub-UI
+// dessen Ausrichtung. '^O' öffnet die Optionen, '^E' die Filter-Sub-UI
 // (persistiert unter excludePath). Sind anfangs alle Hosts ausgeschlossen,
 // startet Flux direkt in der Filter-Sub-UI.
 func runTUI(entries []HostEntry, excludes []string, excludePath, themeName, themePath, bannerName, bannerPath, alignmentName, alignmentPath string) (string, error) {
