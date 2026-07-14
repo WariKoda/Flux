@@ -66,7 +66,7 @@ and scrolling remain unchanged.
 
 ## Help View
 
-`Ctrl+H` opens an in-TUI help view. The help replaces the host table within the
+`Ctrl+O` opens an in-TUI options/help view. The help replaces the host table within the
 same centered window; it is not a second process or external pager. Opening help
 preserves the active main/filter mode, query, table selection, banner style,
 alignment, and theme.
@@ -79,17 +79,17 @@ The help lists:
 - `Ctrl+T` for theme cycling, including all theme display names;
 - `Ctrl+B` for banner cycling, including all four banner style names;
 - `Ctrl+A` for alignment cycling, including Left, Center, and Right;
-- `Ctrl+H` for opening and closing help.
+- `Ctrl+O` for opening and closing options/help.
 
-While help is open, `Ctrl+H` and `Escape` close it and restore the preserved
+While help is open, `Ctrl+O` and `Escape` close it and restore the preserved
 view. Other input is consumed so it cannot mutate the hidden search, filter,
 selection, theme, banner, or alignment state. The help content may scroll when
 the window cannot show every line.
 
 ## Titles and Status
 
-The main and filter titles include `^H: Hilfe`; the help title says that
-`Ctrl+H` or `Esc` closes it. To keep the border title readable, banner and
+The main and filter titles include `^O: Optionen`; the help title says that
+`Ctrl+O` or `Esc` closes it. To keep the border title readable, banner and
 alignment shortcuts are documented in help rather than adding every shortcut
 to the already long main title.
 

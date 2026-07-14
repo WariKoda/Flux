@@ -16,7 +16,7 @@
 - ANSI colors are fixed; monochrome banner color is the active theme's existing `Header` color.
 - Banner alignment is relative to the calculated TUI width, with one blank row between banner and window.
 - Hide the complete banner when the screen is too short; never clip it or mutate the saved setting.
-- `Ctrl+H` opens help; `Ctrl+H` or `Esc` closes it; all other input is consumed while help is open.
+- `Ctrl+O` opens options/help; `Ctrl+O` or `Esc` closes it; all other input is consumed while help is open.
 - Missing setting files select defaults; empty, unreadable, or unknown settings fail explicitly.
 - Preserve all existing filtering, selection, mouse, SSH, exclude-list, and theme behavior.
 - Do not add dependencies.
@@ -293,14 +293,14 @@ git commit -m "feat: render responsive theme-aware banners"
 ```go
 func TestHelpTextListsCommandsAndOptions(t *testing.T) {
     got := helpText()
-    for _, want := range []string{"Ctrl+E", "Ctrl+T", "Ctrl+B", "Ctrl+A", "Ctrl+H", "Esc", "Wortmarke · ANSI", "Terminal · Monochrom", "Links", "Mitte", "Rechts", "Okabe-Ito Dunkel"} {
+    for _, want := range []string{"Ctrl+E", "Ctrl+T", "Ctrl+B", "Ctrl+A", "Ctrl+O", "Esc", "Wortmarke · ANSI", "Terminal · Monochrom", "Links", "Mitte", "Rechts", "Okabe-Ito Dunkel"} {
         if !strings.Contains(got, want) { t.Errorf("Hilfe enthält %q nicht", want) }
     }
 }
 
 func TestHelpInputRules(t *testing.T) {
     state := tuiViewState{}
-    if !handleHelpKey(tcell.NewEventKey(tcell.KeyCtrlH, 0, 0), &state) || !state.HelpVisible { t.Fatal("Ctrl+H muss Hilfe öffnen") }
+    if !handleHelpKey(tcell.NewEventKey(tcell.KeyCtrlO, 0, 0), &state) || !state.HelpVisible { t.Fatal("Ctrl+O muss Hilfe öffnen") }
     if !handleHelpKey(tcell.NewEventKey(tcell.KeyRune, 'x', 0), &state) || !state.HelpVisible { t.Fatal("Eingabe muss konsumiert werden") }
     if !handleHelpKey(tcell.NewEventKey(tcell.KeyEscape, 0, 0), &state) || state.HelpVisible { t.Fatal("Esc muss Hilfe schließen") }
 }
@@ -314,7 +314,7 @@ Expected: build failure because help helpers do not exist.
 
 - [ ] **Step 3: Implement pure help helpers**
 
-Generate German help text with sections `Navigation`, `Ansichten`, `Banner`, `Ausrichtung`, and `Themes`. Derive display-name lists from the actual definition slices rather than duplicating them. `handleHelpKey` toggles on `KeyCtrlH`, closes on `KeyEscape` only when open, consumes every key while open, and returns false for unrelated keys while closed.
+Generate German help text with sections `Navigation`, `Ansichten`, `Banner`, `Ausrichtung`, and `Themes`. Derive display-name lists from the actual definition slices rather than duplicating them. `handleHelpKey` toggles on `KeyCtrlO`, closes on `KeyEscape` only when open, consumes every key while open, and returns false for unrelated keys while closed.
 
 - [ ] **Step 4: Run help and full tests**
 
@@ -348,7 +348,7 @@ git commit -m "feat: define state-preserving TUI help"
 
 ```go
 func TestMainTitlesAdvertiseHelp(t *testing.T) {
-    if !strings.Contains(titleMain, "^H: Hilfe") || !strings.Contains(titleEdit, "^H: Hilfe") { t.Fatal("Hilfe-Shortcut fehlt im Titel") }
+    if !strings.Contains(titleMain, "^O: Optionen") || !strings.Contains(titleEdit, "^O: Optionen") { t.Fatal("Optionen-Shortcut fehlt im Titel") }
 }
 
 func TestFooterSettingsText(t *testing.T) {
@@ -445,7 +445,7 @@ git commit -m "feat: add banner controls and in-TUI help"
 
 - [ ] **Step 1: Update README behavior and controls**
 
-Add rows for `Ctrl+B`, `Ctrl+A`, and `Ctrl+H` to the controls table. Add a `Banner und Hilfe` section documenting the four styles, theme-aware monochrome behavior, three alignments, persistence paths, `Ctrl+H`/`Esc` close behavior, state preservation, input suppression, and automatic hiding in short terminals. Correct the existing prose that says themes cycle with plain `t`; the implementation uses `Ctrl+T`.
+Add rows for `Ctrl+B`, `Ctrl+A`, and `Ctrl+O` to the controls table. Add a `Banner und Hilfe` section documenting the four styles, theme-aware monochrome behavior, three alignments, persistence paths, `Ctrl+O`/`Esc` close behavior, state preservation, input suppression, and automatic hiding in short terminals. Correct the existing prose that says themes cycle with plain `t`; the implementation uses `Ctrl+T`.
 
 - [ ] **Step 2: Verify documentation terms against code**
 
