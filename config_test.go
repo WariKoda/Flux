@@ -315,6 +315,41 @@ func TestThemeIndexUnknownFails(t *testing.T) {
 	}
 }
 
+func TestMatchHosts(t *testing.T) {
+	hosts := []HostEntry{
+		{Alias: "alpha", Aliases: []string{"alpha"}, HostName: "srv-a.example.test", User: "root"},
+		{Alias: "beta", Aliases: []string{"beta", "beta.alias"}, HostName: "srv-b.example.test"},
+		{Alias: "gamma", Aliases: []string{"gamma"}, HostName: "srv-c.example.test",
+			RemoteCommand: "su -P -s /bin/bash -l webuser -c 'cd /var/www/site && exec bash'"},
+	}
+	cases := []struct {
+		name  string
+		query string
+		want  []string
+	}{
+		{"leer: alle", "", []string{"alpha", "beta", "gamma"}},
+		{"alias", "alph", []string{"alpha"}},
+		{"gross/klein egal", "BETA", []string{"beta"}},
+		{"zweit-alias", "beta.alias", []string{"beta"}},
+		{"hostname", "srv-c", []string{"gamma"}},
+		{"su-user", "webuser", []string{"gamma"}},
+		{"ordner", "/var/www", []string{"gamma"}},
+		{"kein treffer", "zzz", nil},
+	}
+	for _, c := range cases {
+		got := matchHosts(hosts, c.query)
+		if len(got) != len(c.want) {
+			t.Errorf("%s: %d Treffer erwartet, %d erhalten", c.name, len(c.want), len(got))
+			continue
+		}
+		for i := range c.want {
+			if got[i].Alias != c.want[i] {
+				t.Errorf("%s: Treffer %d: %q erwartet, %q erhalten", c.name, i, c.want[i], got[i].Alias)
+			}
+		}
+	}
+}
+
 func TestParseRemoteTarget(t *testing.T) {
 	user, dir := parseRemoteTarget("su -P -s /bin/bash -l webuser -c 'cd /var/www/site && exec bash'")
 	if user != "webuser" || dir != "/var/www/site" {
