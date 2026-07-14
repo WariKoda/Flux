@@ -13,12 +13,19 @@ import (
 type BannerColorMode int
 
 const (
-	bannerANSI BannerColorMode = iota
+	bannerRainbow3 BannerColorMode = iota
 	bannerMonochrome
+	bannerNone
 )
+
+type BannerFamily struct {
+	Name  string
+	Forms []BannerForm
+}
 
 type BannerMode struct {
 	Name, DisplayName string
+	Family            BannerFamily
 	ColorMode         BannerColorMode
 }
 
@@ -33,8 +40,19 @@ type BannerAlignment struct {
 }
 
 var banners = []BannerMode{
-	{"ansi", "ANSI", bannerANSI},
-	{"monochrome", "Monochrom", bannerMonochrome},
+	{"blurvision-rainbow3", "BlurVision · Regenbogen", blurVisionFamily, bannerRainbow3},
+	{"blurvision-monochrome", "BlurVision · Monochrom", blurVisionFamily, bannerMonochrome},
+	{"single-rainbow3", "Single · Regenbogen", singleFamily, bannerRainbow3},
+	{"single-monochrome", "Single · Monochrom", singleFamily, bannerMonochrome},
+	{"ansi-regular-rainbow3", "ANSI Regular · Regenbogen", ansiRegularFamily, bannerRainbow3},
+	{"ansi-regular-monochrome", "ANSI Regular · Monochrom", ansiRegularFamily, bannerMonochrome},
+	{"banner3-rainbow3", "Banner3 · Regenbogen", banner3Family, bannerRainbow3},
+	{"banner3-monochrome", "Banner3 · Monochrom", banner3Family, bannerMonochrome},
+	{"ansi-compact-rainbow3", "ANSI Compact · Regenbogen", ansiCompactFamily, bannerRainbow3},
+	{"ansi-compact-monochrome", "ANSI Compact · Monochrom", ansiCompactFamily, bannerMonochrome},
+	{"terrace-rainbow3", "Terrace · Regenbogen", terraceFamily, bannerRainbow3},
+	{"terrace-monochrome", "Terrace · Monochrom", terraceFamily, bannerMonochrome},
+	{"none", "Kein Banner", noneFamily, bannerNone},
 }
 
 var largeBanner = BannerForm{Name: "large", Rows: []string{
@@ -52,8 +70,24 @@ var compactBanner = BannerForm{Name: "compact", Rows: []string{
 	"░▒▓█▓▒░      ░▒▓█▓▒░     ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░",
 	"░▒▓██████▓▒░ ░▒▓█▓▒░     ░▒▓█▓▒░░▒▓█▓▒░░▒▓██████▓▒░",
 	"░▒▓█▓▒░      ░▒▓█▓▒░     ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░",
-	"░▒▓█▓▒░      ░▒▓█▓▒░     ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░",
+	"░▒▓█▓▒░      ░▒▓████████▓▒░▒▓██████▓▒░░▒▓█▓▒░░▒▓█▓▒░",
 }}
+
+var blurVisionFamily = BannerFamily{Name: "blurvision", Forms: []BannerForm{largeBanner, compactBanner}}
+var singleFamily = BannerFamily{Name: "single", Forms: []BannerForm{{Name: "single", Rows: []string{"▓▒░ FLUX ░▒▓"}}}}
+var ansiRegularFamily = BannerFamily{Name: "ansi-regular", Forms: []BannerForm{{Name: "regular", Rows: []string{
+	"███████ ██      ██    ██ ██   ██", "██      ██      ██    ██  ██ ██", "█████   ██      ██    ██   ███", "██      ██      ██    ██  ██ ██", "██      ███████  ██████  ██   ██",
+}}}}
+var banner3Family = BannerFamily{Name: "banner3", Forms: []BannerForm{{Name: "banner3", Rows: []string{
+	"######## ##       ##     ## ##     ##", "##       ##       ##     ##  ##   ##", "##       ##       ##     ##   ## ##", "######   ##       ##     ##    ###", "##       ##       ##     ##   ## ##", "##       ##       ##     ##  ##   ##", "##       ########  #######  ##     ##",
+}}}}
+var ansiCompactFamily = BannerFamily{Name: "ansi-compact", Forms: []BannerForm{{Name: "compact", Rows: []string{
+	"██████ ▄▄    ▄▄ ▄▄ ▄▄ ▄▄", "██▄▄   ██    ██ ██ ▀█▄█▀", "██     ██▄▄▄ ▀███▀ ██ ██",
+}}}}
+var terraceFamily = BannerFamily{Name: "terrace", Forms: []BannerForm{{Name: "terrace", Rows: []string{
+	"░██████████░██", "░██        ░██", "░██        ░██ ░██    ░██ ░██    ░██", "░█████████ ░██ ░██    ░██  ░██  ░██", "░██        ░██ ░██    ░██   ░█████", "░██        ░██ ░██   ░███  ░██  ░██", "░██        ░██  ░█████░██ ░██    ░██",
+}}}}
+var noneFamily = BannerFamily{Name: "none"}
 
 var bannerAlignments = []BannerAlignment{
 	{"left", "Links", tview.AlignLeft},
@@ -61,34 +95,42 @@ var bannerAlignments = []BannerAlignment{
 	{"right", "Rechts", tview.AlignRight},
 }
 
-var bannerANSIColors = []string{"#ff5555", "#f1fa8c", "#50fa7b", "#8be9fd", "#6272a4", "#bd93f9", "#ff79c6", "#ffb86c"}
-
-func renderBanner(form BannerForm, mode BannerMode, theme Theme) string {
-	return renderBannerRows(form.Rows, mode.ColorMode, theme)
+var bannerRainbow3Colors = []string{
+	"#ff2828", "#ff7800", "#ffb400", "#ffdc00", "#dcff00", "#78ff00",
+	"#00ff50", "#00ffa0", "#00c8ff", "#0078ff", "#7850ff", "#ff00c8",
 }
 
-func renderBannerRows(rows []string, colorMode BannerColorMode, theme Theme) string {
+func renderBanner(form BannerForm, mode BannerMode, theme Theme) string {
+	if mode.ColorMode == bannerNone {
+		return ""
+	}
+	return renderBannerRows(form.Rows, mode, theme)
+}
+
+func renderBannerRows(rows []string, mode BannerMode, theme Theme) string {
 	rendered := make([]string, len(rows))
 	for i, row := range rows {
-		if colorMode == bannerMonochrome {
+		if mode.ColorMode == bannerMonochrome {
 			rendered[i] = fmt.Sprintf("[#%06x]%s", theme.Text.Hex(), row)
 			continue
 		}
 
-		rowWidth := runewidth.StringWidth(row)
 		position := 0
 		lastColor := -1
 		var output strings.Builder
 		for _, r := range row {
 			runeWidth := runewidth.RuneWidth(r)
-			colorPosition := position
 			color := lastColor
 			if runeWidth != 0 || lastColor < 0 {
-				color = min(colorPosition*len(bannerANSIColors)/max(1, rowWidth), len(bannerANSIColors)-1)
+				if mode.Family.Name == singleFamily.Name {
+					color = position % len(bannerRainbow3Colors)
+				} else {
+					color = ((position + i + 1) / 2) % len(bannerRainbow3Colors)
+				}
 			}
 			if color != lastColor {
 				output.WriteString("[")
-				output.WriteString(bannerANSIColors[color])
+				output.WriteString(bannerRainbow3Colors[color])
 				output.WriteString("]")
 				lastColor = color
 			}
@@ -109,11 +151,10 @@ func bannerVisible(screenHeight, tuiHeight int, form BannerForm) bool {
 }
 
 func alignedBannerText(form BannerForm, mode BannerMode, width int, alignment BannerAlignment, theme Theme) string {
-	rows := make([]string, len(form.Rows))
+	rows := strings.Split(renderBanner(form, mode, theme), "\n")
 	for i, row := range form.Rows {
 		rowWidth := runewidth.StringWidth(row)
 		if width <= rowWidth {
-			rows[i] = row
 			continue
 		}
 
@@ -125,19 +166,30 @@ func alignedBannerText(form BannerForm, mode BannerMode, width int, alignment Ba
 		default:
 			padding = 0
 		}
-		rows[i] = strings.Repeat(" ", padding) + row
+		rows[i] = strings.Repeat(" ", padding) + rows[i]
 	}
-	return renderBannerRows(rows, mode.ColorMode, theme)
+	return strings.Join(rows, "\n")
 }
 
 func normalizeBannerName(name string) (string, error) {
+	if _, err := bannerIndex(name); err == nil {
+		return name, nil
+	}
 	switch name {
-	case "ansi", "wordmark-ansi", "terminal-ansi":
-		return "ansi", nil
-	case "monochrome", "wordmark-mono", "terminal-mono":
-		return "monochrome", nil
+	case "ansi":
+		return "blurvision-rainbow3", nil
+	case "monochrome":
+		return "blurvision-monochrome", nil
+	case "wordmark-ansi":
+		return "single-rainbow3", nil
+	case "wordmark-mono":
+		return "single-monochrome", nil
+	case "terminal-ansi":
+		return "ansi-regular-rainbow3", nil
+	case "terminal-mono":
+		return "ansi-regular-monochrome", nil
 	default:
-		return "", fmt.Errorf("unbekannter Banner %q (verfügbar: ansi, monochrome)", name)
+		return "", fmt.Errorf("unbekannter Banner %q", name)
 	}
 }
 
