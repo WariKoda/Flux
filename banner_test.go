@@ -67,6 +67,9 @@ func TestExactBannerForms(t *testing.T) {
 	if len(noneFamily.Forms) != 0 {
 		t.Fatalf("none hat %d Formen", len(noneFamily.Forms))
 	}
+	if got := ansiCompactFamily.Forms[0].Name; got != "ansi-compact" {
+		t.Fatalf("ANSI Compact Formname = %q, ansi-compact erwartet", got)
+	}
 	if got := blurVisionFamily.Forms[1].Rows[4]; got != "░▒▓█▓▒░      ░▒▓████████▓▒░▒▓██████▓▒░░▒▓█▓▒░░▒▓█▓▒░" {
 		t.Fatalf("kompakte Abschlusszeile: %q", got)
 	}

@@ -81,7 +81,7 @@ var ansiRegularFamily = BannerFamily{Name: "ansi-regular", Forms: []BannerForm{{
 var banner3Family = BannerFamily{Name: "banner3", Forms: []BannerForm{{Name: "banner3", Rows: []string{
 	"######## ##       ##     ## ##     ##", "##       ##       ##     ##  ##   ##", "##       ##       ##     ##   ## ##", "######   ##       ##     ##    ###", "##       ##       ##     ##   ## ##", "##       ##       ##     ##  ##   ##", "##       ########  #######  ##     ##",
 }}}}
-var ansiCompactFamily = BannerFamily{Name: "ansi-compact", Forms: []BannerForm{{Name: "compact", Rows: []string{
+var ansiCompactFamily = BannerFamily{Name: "ansi-compact", Forms: []BannerForm{{Name: "ansi-compact", Rows: []string{
 	"██████ ▄▄    ▄▄ ▄▄ ▄▄ ▄▄", "██▄▄   ██    ██ ██ ▀█▄█▀", "██     ██▄▄▄ ▀███▀ ██ ██",
 }}}}
 var terraceFamily = BannerFamily{Name: "terrace", Forms: []BannerForm{{Name: "terrace", Rows: []string{

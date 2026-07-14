@@ -77,19 +77,19 @@ func TestBannerFormSelectionAtWidthAndHeightBoundaries(t *testing.T) {
 		name         string
 		screenWidth  int
 		screenHeight int
-		wantBanner   string
+		wantBanner   *BannerForm
 	}{
-		{"large at exact width and height", formWidth + 2*horizontalMargin, largeScreenHeight, largeBanner.Name},
-		{"compact one row below large boundary", formWidth + 2*horizontalMargin, largeScreenHeight - 1, compactBanner.Name},
-		{"hidden one row below compact boundary", formWidth + 2*horizontalMargin, compactScreenHeight - 1, "hidden"},
-		{"hidden one column below form width", formWidth + 2*horizontalMargin - 1, largeScreenHeight, "hidden"},
+		{"large at exact width and height", formWidth + 2*horizontalMargin, largeScreenHeight, &banners[0].Family.Forms[0]},
+		{"compact one row below large boundary", formWidth + 2*horizontalMargin, largeScreenHeight - 1, &banners[0].Family.Forms[1]},
+		{"hidden one row below compact boundary", formWidth + 2*horizontalMargin, compactScreenHeight - 1, nil},
+		{"hidden one column below form width", formWidth + 2*horizontalMargin - 1, largeScreenHeight, nil},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			layout := calculateTUILayout(tt.screenWidth, tt.screenHeight, 1, minBodyHeight, "kurz", banners[0])
-			if got := bannerName(layout.Banner); got != tt.wantBanner {
-				t.Fatalf("Banner = %v, erwartet %v", got, tt.wantBanner)
+			if layout.Banner != tt.wantBanner {
+				t.Fatalf("Banner = %p (%s), erwartet %p (%s)", layout.Banner, bannerName(layout.Banner), tt.wantBanner, bannerName(tt.wantBanner))
 			}
 			if layout.BodyHeight < minBodyHeight {
 				t.Fatalf("BodyHeight = %d, mindestens %d erwartet", layout.BodyHeight, minBodyHeight)
@@ -101,7 +101,7 @@ func TestBannerFormSelectionAtWidthAndHeightBoundaries(t *testing.T) {
 func TestLayoutUsesOnlySelectedBannerFamily(t *testing.T) {
 	mode := banners[8]
 	layout := calculateTUILayout(80, 30, 20, 3, "kurz", mode)
-	if layout.Banner == nil || layout.Banner.Name != "compact" {
+	if layout.Banner != &mode.Family.Forms[0] {
 		t.Fatalf("Banner: %+v", layout.Banner)
 	}
 	if layout.Width != max(20, bannerFormWidth(mode.Family.Forms[0])) {
@@ -129,8 +129,8 @@ func TestSelectedBannerFamilyBoundaries(t *testing.T) {
 			screenHeight := 2*verticalMargin + windowHeight + bannerGapHeight + bannerHeight(form)
 
 			exact := calculateTUILayout(formWidth+2*horizontalMargin, screenHeight, 1, minBodyHeight, "kurz", tt.mode)
-			if exact.Banner == nil || exact.Banner.Name != form.Name {
-				t.Fatalf("exact fit Banner = %v, erwartet %s", bannerName(exact.Banner), form.Name)
+			if exact.Banner != &tt.mode.Family.Forms[0] {
+				t.Fatalf("exact fit Banner = %p (%s), erwartet %p (%s)", exact.Banner, bannerName(exact.Banner), &tt.mode.Family.Forms[0], form.Name)
 			}
 			if got := calculateTUILayout(formWidth+2*horizontalMargin-1, screenHeight, 1, minBodyHeight, "kurz", tt.mode).Banner; got != nil {
 				t.Fatalf("one column below Banner = %s, hidden erwartet", bannerName(got))

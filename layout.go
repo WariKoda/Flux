@@ -23,11 +23,7 @@ type tuiLayout struct {
 	Banner       *BannerForm
 }
 
-func calculateTUILayout(screenWidth, screenHeight, naturalWidth, preferredBodyHeight int, footerText string, selectedMode ...BannerMode) tuiLayout {
-	mode := banners[0]
-	if len(selectedMode) > 0 {
-		mode = selectedMode[0]
-	}
+func calculateTUILayout(screenWidth, screenHeight, naturalWidth, preferredBodyHeight int, footerText string, mode BannerMode) tuiLayout {
 	widthCap := max(1, min(maxTUIWidth, screenWidth-2*horizontalMargin))
 	desiredWidth := max(1, naturalWidth)
 	for _, form := range mode.Family.Forms {
