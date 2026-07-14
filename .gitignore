@@ -1,3 +1,6 @@
 # Build-Artefakte
 /flux
 /Flux
+
+# Lokale, isolierte Entwicklungs-Worktrees
+/.worktrees/

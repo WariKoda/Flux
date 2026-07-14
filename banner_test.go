@@ -1,0 +1,233 @@
+package main
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
+	"testing"
+
+	"github.com/gdamore/tcell/v2"
+)
+
+var bannerTagPattern = regexp.MustCompile(`\[[^]]*\]`)
+
+func stripTags(text string) string {
+	return bannerTagPattern.ReplaceAllString(text, "")
+}
+
+func TestMonochromeBannerUsesThemeHeader(t *testing.T) {
+	th := Theme{Header: tcell.NewHexColor(0x123456)}
+	got := renderBanner(banners[1], th)
+	if !strings.Contains(got, "[#123456]") {
+		t.Fatalf("Theme-Farbe fehlt: %q", got)
+	}
+	if strings.Contains(got, "[#ff5555]") {
+		t.Fatalf("ANSI-Farbe in Monochrom-Banner: %q", got)
+	}
+}
+
+func TestANSIBannerIsThemeIndependent(t *testing.T) {
+	a := renderBanner(banners[0], Theme{Header: tcell.ColorRed})
+	b := renderBanner(banners[0], Theme{Header: tcell.ColorBlue})
+	if a != b {
+		t.Fatalf("ANSI-Banner darf sich mit Theme nicht ändern")
+	}
+	if !strings.Contains(a, "[#ff5555]") || !strings.Contains(a, "[#8be9fd]") {
+		t.Fatalf("ANSI-Palette fehlt: %q", a)
+	}
+}
+
+func TestANSIBannerPreservesCombiningRunes(t *testing.T) {
+	b := Banner{Rows: []string{"a\u0301"}, ColorMode: bannerANSI}
+	if got := renderBanner(b, Theme{}); got != "[#ff5555]a\u0301" {
+		t.Fatalf("kombinierte Rune nicht zusammenhängend erhalten: %q", got)
+	}
+}
+
+func TestANSIBannerPreservesWideRuneColorForCombiningMark(t *testing.T) {
+	b := Banner{Rows: []string{"界\u0301"}, ColorMode: bannerANSI}
+	if got := renderBanner(b, Theme{}); got != "[#ff5555]界\u0301" {
+		t.Fatalf("kombinierte Rune nach breiter Basis wechselte die Farbe: %q", got)
+	}
+}
+
+func TestBannerVisibilityRequiresWholeBannerAndGap(t *testing.T) {
+	b := banners[2]
+	if !bannerVisible(15, 10, b) {
+		t.Fatal("4 Zeilen + Abstand müssen exakt passen")
+	}
+	if bannerVisible(14, 10, b) {
+		t.Fatal("eine Zeile zu wenig muss Banner ausblenden")
+	}
+}
+
+func TestAlignedBannerText(t *testing.T) {
+	b := Banner{Rows: []string{"FLUX"}, ColorMode: bannerMonochrome}
+	th := Theme{Header: tcell.ColorGreen}
+	if got := stripTags(alignedBannerText(b, 8, bannerAlignments[0], th)); got != "FLUX" {
+		t.Errorf("links: %q", got)
+	}
+	if got := stripTags(alignedBannerText(b, 8, bannerAlignments[1], th)); got != "  FLUX" {
+		t.Errorf("mitte: %q", got)
+	}
+	if got := stripTags(alignedBannerText(b, 8, bannerAlignments[2], th)); got != "    FLUX" {
+		t.Errorf("rechts: %q", got)
+	}
+}
+
+func TestAlignedBannerTextUsesDisplayWidth(t *testing.T) {
+	b := Banner{Rows: []string{"界"}, ColorMode: bannerMonochrome}
+	got := stripTags(alignedBannerText(b, 4, bannerAlignments[1], Theme{Header: tcell.ColorGreen}))
+	if got != " 界" {
+		t.Fatalf("Unicode-Anzeigebreite nicht berücksichtigt: %q", got)
+	}
+}
+
+func TestBannerDefinitionsAndCycleOrder(t *testing.T) {
+	want := []string{"wordmark-ansi", "wordmark-mono", "terminal-ansi", "terminal-mono"}
+	if len(banners) != len(want) {
+		t.Fatalf("%d Banner erwartet, %d erhalten", len(want), len(banners))
+	}
+	for i, name := range want {
+		if banners[i].Name != name {
+			t.Errorf("Banner %d: %q erwartet, %q erhalten", i, name, banners[i].Name)
+		}
+	}
+	if got := nextIndex(3, len(banners)); got != 0 {
+		t.Errorf("Wraparound: 0 erwartet, %d erhalten", got)
+	}
+}
+
+func TestBannerAlignmentDefinitionsAndCycleOrder(t *testing.T) {
+	want := []string{"left", "center", "right"}
+	if len(bannerAlignments) != len(want) {
+		t.Fatalf("%d Ausrichtungen erwartet, %d erhalten", len(want), len(bannerAlignments))
+	}
+	for i, name := range want {
+		if bannerAlignments[i].Name != name {
+			t.Errorf("Ausrichtung %d: %q erwartet, %q erhalten", i, name, bannerAlignments[i].Name)
+		}
+	}
+	if got := nextIndex(2, len(bannerAlignments)); got != 0 {
+		t.Errorf("Wraparound: 0 erwartet, %d erhalten", got)
+	}
+}
+
+func TestBannerAndAlignmentLookup(t *testing.T) {
+	if got, err := bannerIndex("terminal-ansi"); err != nil || got != 2 {
+		t.Fatalf("Banner-Lookup: Index %d, Fehler %v", got, err)
+	}
+	if got, err := bannerAlignmentIndex("center"); err != nil || got != 1 {
+		t.Fatalf("Ausrichtungs-Lookup: Index %d, Fehler %v", got, err)
+	}
+}
+
+func TestNextIndexPanicsForNonPositiveLength(t *testing.T) {
+	for _, length := range []int{0, -1} {
+		t.Run(fmt.Sprintf("length_%d", length), func(t *testing.T) {
+			defer func() {
+				if recover() == nil {
+					t.Fatalf("nextIndex muss für Länge %d panic auslösen", length)
+				}
+			}()
+			nextIndex(0, length)
+		})
+	}
+}
+
+func TestUnknownBannerAndAlignmentFail(t *testing.T) {
+	if _, err := bannerIndex("unknown"); err == nil {
+		t.Fatal("unbekannter Banner muss fehlschlagen")
+	}
+	if _, err := bannerAlignmentIndex("unknown"); err == nil {
+		t.Fatal("unbekannte Ausrichtung muss fehlschlagen")
+	}
+}
+
+func TestBannerSettingsRoundTrip(t *testing.T) {
+	dir := t.TempDir()
+	bannerPath := filepath.Join(dir, "nested", "banner")
+	alignPath := filepath.Join(dir, "nested", "banner-alignment")
+	if err := SaveBannerName(bannerPath, "terminal-mono"); err != nil {
+		t.Fatal(err)
+	}
+	if err := SaveBannerAlignmentName(alignPath, "right"); err != nil {
+		t.Fatal(err)
+	}
+	if info, err := os.Stat(filepath.Dir(bannerPath)); err != nil {
+		t.Fatal(err)
+	} else if got := info.Mode().Perm(); got != 0o700 {
+		t.Fatalf("Verzeichnismodus: %04o, erwartet 0700", got)
+	}
+	for _, path := range []string{bannerPath, alignPath} {
+		if info, err := os.Stat(path); err != nil {
+			t.Fatal(err)
+		} else if got := info.Mode().Perm(); got != 0o600 {
+			t.Fatalf("Dateimodus %s: %04o, erwartet 0600", path, got)
+		}
+	}
+	if got, err := LoadBannerName(bannerPath); err != nil || got != "terminal-mono" {
+		t.Fatalf("Banner: %q, %v", got, err)
+	}
+	if got, err := LoadBannerAlignmentName(alignPath); err != nil || got != "right" {
+		t.Fatalf("Ausrichtung: %q, %v", got, err)
+	}
+}
+
+func TestMissingBannerSettingsUseDefaults(t *testing.T) {
+	dir := t.TempDir()
+	if got, err := LoadBannerName(filepath.Join(dir, "banner")); err != nil || got != banners[0].Name {
+		t.Fatalf("Banner: %q, %v", got, err)
+	}
+	if got, err := LoadBannerAlignmentName(filepath.Join(dir, "align")); err != nil || got != bannerAlignments[0].Name {
+		t.Fatalf("Ausrichtung: %q, %v", got, err)
+	}
+}
+
+func TestInvalidBannerSettingsFail(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		value       string
+		load        func(string) (string, error)
+		errorPrefix string
+	}{
+		{"leerer Banner", " \n", LoadBannerName, "Banner-Datei nicht lesbar:"},
+		{"unbekannter Banner", "wat\n", LoadBannerName, "Banner-Datei nicht lesbar:"},
+		{"leere Ausrichtung", "\n", LoadBannerAlignmentName, "Banner-Ausrichtungsdatei nicht lesbar:"},
+		{"unbekannte Ausrichtung", "diagonal\n", LoadBannerAlignmentName, "Banner-Ausrichtungsdatei nicht lesbar:"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "setting")
+			if err := os.WriteFile(path, []byte(tc.value), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := tc.load(path); err == nil {
+				t.Fatal("Fehler erwartet")
+			} else if !strings.HasPrefix(err.Error(), tc.errorPrefix) {
+				t.Fatalf("Fehler %q beginnt nicht mit %q", err, tc.errorPrefix)
+			}
+		})
+	}
+}
+
+func TestUnreadableBannerSettingsUseDistinctErrorContexts(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		load        func(string) (string, error)
+		errorPrefix string
+	}{
+		{"Banner", LoadBannerName, "Banner-Datei nicht lesbar:"},
+		{"Ausrichtung", LoadBannerAlignmentName, "Banner-Ausrichtungsdatei nicht lesbar:"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			path := t.TempDir()
+			if _, err := tc.load(path); err == nil {
+				t.Fatal("Fehler erwartet")
+			} else if !strings.HasPrefix(err.Error(), tc.errorPrefix) {
+				t.Fatalf("Fehler %q beginnt nicht mit %q", err, tc.errorPrefix)
+			}
+		})
+	}
+}
