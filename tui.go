@@ -417,7 +417,7 @@ func runTUI(entries []HostEntry, excludes []string, excludePath, themeName, them
 		screenWidth, screenHeight := screen.Size()
 		row, _ := table.GetSelection()
 		currentFooter := footerText(row)
-		layout := calculateTUILayout(screenWidth, screenHeight, naturalTableWidth(entries), totalRows, currentFooter)
+		layout := calculateTUILayout(screenWidth, screenHeight, naturalTableWidth(entries), totalRows, currentFooter, banners[bannerIdx])
 		footer.SetText(currentFooter)
 
 		visibleBannerHeight, gapHeight := 0, 0

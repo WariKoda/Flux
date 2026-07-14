@@ -62,23 +62,41 @@ Benötigt Go ≥ 1.26 und ein `ssh`-Binary im `PATH`.
 
 ## Banner und Hilfe
 
-Flux bietet zwei Farbmodi für die FLUX-Wortmarke: `ansi` zeigt den festen
-ANSI-Farbverlauf, `monochrome` verwendet die Textfarbe (`Theme.Text`) des
-aktiven Themes. Mit `Ctrl+B` wechselst du den Farbmodus; die Wahl wird in
-`~/.config/flux/banner` gespeichert. Ältere gespeicherte Werte aus Flux
-v0.3.0 (`wordmark-ansi`, `terminal-ansi`, `wordmark-mono` und
-`terminal-mono`) werden weiterhin gelesen und automatisch dem passenden
-Farbmodus zugeordnet.
+Mit `Ctrl+B` wechselst du der Reihe nach durch sechs Banner-Designs, jeweils
+als **Regenbogen** und **Monochrom**, sowie die Auswahl **Kein Banner**:
+
+- **BlurVision** — die klassische FLUX-Wortmarke,
+- **Single** — eine kompakte einzeilige Wortmarke,
+- **ANSI Regular** — eine fünfzeilige Blockschrift,
+- **Banner3** — eine siebenzeilige Rautenschrift,
+- **ANSI Compact** — eine dreizeilige kompakte Blockschrift,
+- **Terrace** — eine siebenzeilige Terrassenschrift.
+
+Die Regenbogen-Varianten verwenden `rainbow3`: zwölf Farben laufen über die
+sichtbaren Terminalspalten, wechseln bei mehrzeiligen Bannern alle zwei
+Spalten und beginnen je Zeile leicht versetzt. Nur der einzeilige
+**Single**-Banner durchläuft das volle Farbspektrum spaltenweise. Die
+monochromen Varianten verwenden die Textfarbe des aktiven Themes und werden
+bei einem Theme-Wechsel sofort neu gezeichnet. **Kein Banner** entfernt
+Banner und Abstand vollständig.
+
+Die Wahl wird als stabiler Bezeichner in `~/.config/flux/banner` gespeichert
+und beim nächsten Start wiederhergestellt. Ältere gespeicherte Werte
+`ansi`, `monochrome`, `wordmark-ansi`, `terminal-ansi`, `wordmark-mono` und
+`terminal-mono` bleiben kompatibel und werden dem jeweils passenden
+BlurVision-, Single- oder ANSI-Regular-Banner zugeordnet.
 
 Mit `Ctrl+A` wechselst du zwischen den Ausrichtungen Links, Mitte und Rechts.
 Flux speichert die Ausrichtung unverändert in
-`~/.config/flux/banner-alignment`. Größe und Sichtbarkeit der Wortmarke wählt
-Flux bei jedem Zeichnen automatisch: Passt die vollständige siebenzeilige
-Form samt Trennzeile, wird sie angezeigt; andernfalls die vollständige
-fünfzeilige Kompaktform samt Trennzeile. Passt auch diese in Breite oder Höhe
-nicht, bleibt der Banner verborgen. Die Formen werden nie abgeschnitten oder
-skaliert und nach einer Terminal-Größenänderung sofort neu gewählt. Farbmodus
-und Ausrichtung bleiben dabei erhalten.
+`~/.config/flux/banner-alignment`. Größe und Sichtbarkeit werden bei jedem
+Zeichnen neu bestimmt. Nur **BlurVision** besitzt zwei Formen: Passt die
+vollständige siebenzeilige Form samt Trennzeile nicht, versucht Flux die
+vollständige fünfzeilige Form; passt auch sie nicht in Breite oder Höhe,
+bleibt der Banner verborgen. Single, ANSI Regular, Banner3, ANSI Compact und
+Terrace haben jeweils eine feste Form und werden vollständig verborgen,
+sobald diese nicht passt. Banner werden nie abgeschnitten oder skaliert und
+nach einer Terminal-Größenänderung sofort neu gewählt. Farbvariante und die
+mit `Ctrl+A` gewählte Ausrichtung bleiben dabei erhalten.
 
 Das zentrierte TUI bleibt höchstens 100 Spalten breit und lässt links wie
 rechts mindestens zwei Terminalspalten frei. Lange Fußzeilen werden innerhalb

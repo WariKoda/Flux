@@ -15,7 +15,7 @@ func TestMainTitlesAdvertiseHelp(t *testing.T) {
 
 func TestFooterSettingsText(t *testing.T) {
 	got := settingsStatus(themes[0], banners[0], bannerAlignments[2])
-	for _, want := range []string{"Theme: Dunkel", "Banner: ANSI", "Ausrichtung: Rechts"} {
+	for _, want := range []string{"Theme: Dunkel", "Banner: BlurVision · Regenbogen", "Ausrichtung: Rechts"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("Status enthält %q nicht: %q", want, got)
 		}
@@ -24,6 +24,13 @@ func TestFooterSettingsText(t *testing.T) {
 		if strings.Contains(got, old) {
 			t.Errorf("Status enthält alte Banner-Auswahl %q: %q", old, got)
 		}
+	}
+}
+
+func TestFooterSettingsTextForNoBanner(t *testing.T) {
+	got := settingsStatus(themes[0], banners[len(banners)-1], bannerAlignments[0])
+	if !strings.Contains(got, "Banner: Kein Banner") {
+		t.Fatalf("Status für ausgeschalteten Banner = %q", got)
 	}
 }
 
@@ -52,14 +59,15 @@ func TestHelpTextListsCommandsAndOptions(t *testing.T) {
 	for _, want := range []string{
 		"Tippen", "Suche", "Backspace", "Pfeil ↑/↓", "Home/End", "Enter",
 		"Linksklick", "Mausrad", "Ctrl+E", "Ctrl+T", "Ctrl+B", "Ctrl+A",
-		"Ctrl+O", "Esc", "ANSI", "Monochrom",
+		"Ctrl+O", "Esc", "BlurVision", "Single", "ANSI Regular", "Banner3",
+		"ANSI Compact", "Terrace", "Monochrom", "Regenbogen", "Kein Banner",
 		"Links", "Mitte", "Rechts", "Okabe-Ito Dunkel",
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("Hilfe enthält %q nicht", want)
 		}
 	}
-	for _, old := range []string{"Wortmarke", "Terminal"} {
+	for _, old := range []string{"wordmark-ansi", "wordmark-mono", "terminal-ansi", "terminal-mono"} {
 		if strings.Contains(got, old) {
 			t.Errorf("Hilfe enthält alte Banner-Auswahl %q", old)
 		}

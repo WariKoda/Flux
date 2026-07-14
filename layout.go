@@ -23,11 +23,10 @@ type tuiLayout struct {
 	Banner       *BannerForm
 }
 
-func calculateTUILayout(screenWidth, screenHeight, naturalWidth, preferredBodyHeight int, footerText string) tuiLayout {
+func calculateTUILayout(screenWidth, screenHeight, naturalWidth, preferredBodyHeight int, footerText string, mode BannerMode) tuiLayout {
 	widthCap := max(1, min(maxTUIWidth, screenWidth-2*horizontalMargin))
 	desiredWidth := max(1, naturalWidth)
-	// The approved large and compact forms have equal width, so selection currently differs by height.
-	for _, form := range []BannerForm{largeBanner, compactBanner} {
+	for _, form := range mode.Family.Forms {
 		formWidth := bannerFormWidth(form)
 		if formWidth <= widthCap {
 			desiredWidth = max(desiredWidth, formWidth)
@@ -59,10 +58,12 @@ func calculateTUILayout(screenWidth, screenHeight, naturalWidth, preferredBodyHe
 
 	remainingHeight := screenHeight - 2*verticalMargin - windowHeight
 	var banner *BannerForm
-	if bannerFormWidth(largeBanner) <= width && bannerHeight(largeBanner)+bannerGapHeight <= remainingHeight {
-		banner = &largeBanner
-	} else if bannerFormWidth(compactBanner) <= width && bannerHeight(compactBanner)+bannerGapHeight <= remainingHeight {
-		banner = &compactBanner
+	for i := range mode.Family.Forms {
+		form := &mode.Family.Forms[i]
+		if bannerFormWidth(*form) <= width && bannerHeight(*form)+bannerGapHeight <= remainingHeight {
+			banner = form
+			break
+		}
 	}
 
 	return tuiLayout{

@@ -18,28 +18,65 @@ func stripTags(text string) string {
 	return bannerTagPattern.ReplaceAllString(text, "")
 }
 
-func TestBannerModesAndForms(t *testing.T) {
-	if got := []string{banners[0].Name, banners[1].Name}; !reflect.DeepEqual(got, []string{"ansi", "monochrome"}) {
-		t.Fatalf("Banner-Modi: %v", got)
+func TestBannerCatalog(t *testing.T) {
+	want := []string{
+		"blurvision-rainbow3", "blurvision-monochrome",
+		"single-rainbow3", "single-monochrome",
+		"ansi-regular-rainbow3", "ansi-regular-monochrome",
+		"banner3-rainbow3", "banner3-monochrome",
+		"ansi-compact-rainbow3", "ansi-compact-monochrome",
+		"terrace-rainbow3", "terrace-monochrome", "none",
 	}
-	if len(largeBanner.Rows) != 7 || len(compactBanner.Rows) != 5 {
-		t.Fatalf("Banner-Höhen falsch")
+	got := make([]string, len(banners))
+	for i := range banners {
+		got[i] = banners[i].Name
 	}
-	for i, row := range compactBanner.Rows {
-		if strings.HasPrefix(row, " ") || strings.HasSuffix(row, " ") {
-			t.Errorf("Kompaktzeile %d gepolstert: %q", i, row)
-		}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("Banner-Katalog: %v", got)
 	}
-	if largeBanner.Rows[0] != "░▒▓████████▓▒░▒▓█▓▒░     ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░" {
-		t.Fatal("große Wortmarke verändert")
+}
+
+func TestExactBannerForms(t *testing.T) {
+	tests := []struct {
+		name   string
+		family BannerFamily
+		rows   [][]string
+	}{
+		{"BlurVision", blurVisionFamily, [][]string{
+			{"░▒▓████████▓▒░▒▓█▓▒░     ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░", "░▒▓█▓▒░      ░▒▓█▓▒░     ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░", "░▒▓█▓▒░      ░▒▓█▓▒░     ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░", "░▒▓██████▓▒░ ░▒▓█▓▒░     ░▒▓█▓▒░░▒▓█▓▒░░▒▓██████▓▒░", "░▒▓█▓▒░      ░▒▓█▓▒░     ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░", "░▒▓█▓▒░      ░▒▓█▓▒░     ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░", "░▒▓█▓▒░      ░▒▓████████▓▒░▒▓██████▓▒░░▒▓█▓▒░░▒▓█▓▒░"},
+			{"░▒▓████████▓▒░▒▓█▓▒░     ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░", "░▒▓█▓▒░      ░▒▓█▓▒░     ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░", "░▒▓██████▓▒░ ░▒▓█▓▒░     ░▒▓█▓▒░░▒▓█▓▒░░▒▓██████▓▒░", "░▒▓█▓▒░      ░▒▓█▓▒░     ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░", "░▒▓█▓▒░      ░▒▓████████▓▒░▒▓██████▓▒░░▒▓█▓▒░░▒▓█▓▒░"},
+		}},
+		{"single", singleFamily, [][]string{{"▓▒░ FLUX ░▒▓"}}},
+		{"ANSI Regular", ansiRegularFamily, [][]string{{"███████ ██      ██    ██ ██   ██", "██      ██      ██    ██  ██ ██", "█████   ██      ██    ██   ███", "██      ██      ██    ██  ██ ██", "██      ███████  ██████  ██   ██"}}},
+		{"Banner3", banner3Family, [][]string{{"######## ##       ##     ## ##     ##", "##       ##       ##     ##  ##   ##", "##       ##       ##     ##   ## ##", "######   ##       ##     ##    ###", "##       ##       ##     ##   ## ##", "##       ##       ##     ##  ##   ##", "##       ########  #######  ##     ##"}}},
+		{"ANSI Compact", ansiCompactFamily, [][]string{{"██████ ▄▄    ▄▄ ▄▄ ▄▄ ▄▄", "██▄▄   ██    ██ ██ ▀█▄█▀", "██     ██▄▄▄ ▀███▀ ██ ██"}}},
+		{"Terrace", terraceFamily, [][]string{{"░██████████░██", "░██        ░██", "░██        ░██ ░██    ░██ ░██    ░██", "░█████████ ░██ ░██    ░██  ░██  ░██", "░██        ░██ ░██    ░██   ░█████", "░██        ░██ ░██   ░███  ░██  ░██", "░██        ░██  ░█████░██ ░██    ░██"}}},
 	}
-	if compactBanner.Rows[2] != "░▒▓██████▓▒░ ░▒▓█▓▒░     ░▒▓█▓▒░░▒▓█▓▒░░▒▓██████▓▒░" {
-		t.Fatal("kompakte Wortmarke verändert")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if len(tt.family.Forms) != len(tt.rows) {
+				t.Fatalf("Formanzahl: %d", len(tt.family.Forms))
+			}
+			for i := range tt.rows {
+				if !reflect.DeepEqual(tt.family.Forms[i].Rows, tt.rows[i]) {
+					t.Errorf("Form %d:\n%q\nwant:\n%q", i, tt.family.Forms[i].Rows, tt.rows[i])
+				}
+			}
+		})
+	}
+	if len(noneFamily.Forms) != 0 {
+		t.Fatalf("none hat %d Formen", len(noneFamily.Forms))
+	}
+	if got := ansiCompactFamily.Forms[0].Name; got != "ansi-compact" {
+		t.Fatalf("ANSI Compact Formname = %q, ansi-compact erwartet", got)
+	}
+	if got := blurVisionFamily.Forms[1].Rows[4]; got != "░▒▓█▓▒░      ░▒▓████████▓▒░▒▓██████▓▒░░▒▓█▓▒░░▒▓█▓▒░" {
+		t.Fatalf("kompakte Abschlusszeile: %q", got)
 	}
 }
 
 func TestLegacyBannerNamesNormalize(t *testing.T) {
-	cases := map[string]string{"wordmark-ansi": "ansi", "terminal-ansi": "ansi", "wordmark-mono": "monochrome", "terminal-mono": "monochrome", "ansi": "ansi", "monochrome": "monochrome"}
+	cases := map[string]string{"ansi": "blurvision-rainbow3", "monochrome": "blurvision-monochrome", "wordmark-ansi": "single-rainbow3", "wordmark-mono": "single-monochrome", "terminal-ansi": "ansi-regular-rainbow3", "terminal-mono": "ansi-regular-monochrome"}
 	for in, want := range cases {
 		if got, err := normalizeBannerName(in); err != nil || got != want {
 			t.Errorf("%q: %q, %v", in, got, err)
@@ -47,6 +84,58 @@ func TestLegacyBannerNamesNormalize(t *testing.T) {
 	}
 	if _, err := normalizeBannerName("unknown"); err == nil {
 		t.Fatal("unbekannter Modus muss fehlschlagen")
+	}
+}
+
+func TestRainbow3UsesTAAGDiagonalPhase(t *testing.T) {
+	form := BannerForm{Rows: []string{"abcd", "efgh", "ijkl"}}
+	got := renderBanner(form, BannerMode{ColorMode: bannerRainbow3}, Theme{})
+	want := "[#ff2828]a[#ff7800]bc[#ffb400]d\n" +
+		"[#ff7800]ef[#ffb400]gh\n" +
+		"[#ff7800]i[#ffb400]jk[#ffdc00]l"
+	if got != want {
+		t.Fatalf("rainbow3:\n%s\nwant:\n%s", got, want)
+	}
+}
+
+func TestRainbow3SpaceConsumesDisplayCellAndAdvancesPhase(t *testing.T) {
+	form := BannerForm{Rows: []string{"a b", "a b"}}
+	got := renderBanner(form, BannerMode{ColorMode: bannerRainbow3}, Theme{})
+	want := "[#ff2828]a[#ff7800] b\n" +
+		"[#ff7800]a [#ffb400]b"
+	if got != want {
+		t.Fatalf("rainbow3 space phase:\n%q\nwant:\n%q", got, want)
+	}
+}
+
+func TestRainbow3WideRuneAdvancesByDisplayWidth(t *testing.T) {
+	form := BannerForm{Rows: []string{"界x", "z"}}
+	got := renderBanner(form, BannerMode{ColorMode: bannerRainbow3}, Theme{})
+	want := "[#ff2828]界[#ff7800]x\n[#ff7800]z"
+	if got != want {
+		t.Fatalf("rainbow3 wide-rune phase:\n%q\nwant:\n%q", got, want)
+	}
+}
+
+func TestSingleRowUsesEveryRainbow3ColorOnce(t *testing.T) {
+	wantColors := []string{
+		"#ff2828", "#ff7800", "#ffb400", "#ffdc00", "#dcff00", "#78ff00",
+		"#00ff50", "#00ffa0", "#00c8ff", "#0078ff", "#7850ff", "#ff00c8",
+	}
+	if !reflect.DeepEqual(bannerRainbow3Colors, wantColors) {
+		t.Fatalf("rainbow3-Palette: %v", bannerRainbow3Colors)
+	}
+	got := renderBanner(singleFamily.Forms[0], banners[2], Theme{})
+	for _, color := range bannerRainbow3Colors {
+		if strings.Count(got, "["+color+"]") != 1 {
+			t.Errorf("Farbe %s nicht genau einmal: %q", color, got)
+		}
+	}
+}
+
+func TestNoneBannerRendersEmpty(t *testing.T) {
+	if got := renderBanner(largeBanner, banners[12], Theme{}); got != "" {
+		t.Fatalf("none: %q", got)
 	}
 }
 
@@ -69,27 +158,27 @@ func TestMonochromeBannerUsesThemeColor(t *testing.T) {
 	}
 }
 
-func TestANSIBannerIsThemeIndependent(t *testing.T) {
+func TestRainbow3BannerIsThemeIndependent(t *testing.T) {
 	a := renderBanner(compactBanner, banners[0], Theme{Text: tcell.ColorRed})
 	b := renderBanner(compactBanner, banners[0], Theme{Text: tcell.ColorBlue})
 	if a != b {
 		t.Fatalf("ANSI-Banner darf sich mit Theme nicht ändern")
 	}
-	if !strings.Contains(a, "[#ff5555]") || !strings.Contains(a, "[#8be9fd]") {
-		t.Fatalf("ANSI-Palette fehlt: %q", a)
+	if !strings.Contains(a, "[#ff2828]") || !strings.Contains(a, "[#ff7800]") {
+		t.Fatalf("rainbow3-Palette fehlt: %q", a)
 	}
 }
 
-func TestANSIBannerPreservesCombiningRunes(t *testing.T) {
+func TestRainbow3BannerPreservesCombiningRunes(t *testing.T) {
 	form := BannerForm{Rows: []string{"a\u0301"}}
-	if got := renderBanner(form, banners[0], Theme{}); got != "[#ff5555]a\u0301" {
+	if got := renderBanner(form, banners[0], Theme{}); got != "[#ff2828]a\u0301" {
 		t.Fatalf("kombinierte Rune nicht zusammenhängend erhalten: %q", got)
 	}
 }
 
-func TestANSIBannerPreservesWideRuneColorForCombiningMark(t *testing.T) {
+func TestRainbow3BannerPreservesWideRuneColorForCombiningMark(t *testing.T) {
 	form := BannerForm{Rows: []string{"界\u0301"}}
-	if got := renderBanner(form, banners[0], Theme{}); got != "[#ff5555]界\u0301" {
+	if got := renderBanner(form, banners[0], Theme{}); got != "[#ff2828]界\u0301" {
 		t.Fatalf("kombinierte Rune nach breiter Basis wechselte die Farbe: %q", got)
 	}
 }
@@ -126,8 +215,18 @@ func TestAlignedBannerTextUsesDisplayWidth(t *testing.T) {
 	}
 }
 
+func TestAlignedBannerPaddingDoesNotChangeRainbowPhase(t *testing.T) {
+	form := BannerForm{Rows: []string{"abcd"}}
+	for _, alignment := range bannerAlignments[1:] {
+		got := alignedBannerText(form, banners[0], 8, alignment, Theme{})
+		if !strings.Contains(got, " [#ff2828]a") {
+			t.Errorf("%s: Padding/Farbe falsch: %q", alignment.Name, got)
+		}
+	}
+}
+
 func TestBannerDefinitionsAndCycleOrder(t *testing.T) {
-	want := []string{"ansi", "monochrome"}
+	want := []string{"blurvision-rainbow3", "blurvision-monochrome", "single-rainbow3", "single-monochrome", "ansi-regular-rainbow3", "ansi-regular-monochrome", "banner3-rainbow3", "banner3-monochrome", "ansi-compact-rainbow3", "ansi-compact-monochrome", "terrace-rainbow3", "terrace-monochrome", "none"}
 	if len(banners) != len(want) {
 		t.Fatalf("%d Banner erwartet, %d erhalten", len(want), len(banners))
 	}
@@ -136,7 +235,7 @@ func TestBannerDefinitionsAndCycleOrder(t *testing.T) {
 			t.Errorf("Banner %d: %q erwartet, %q erhalten", i, name, banners[i].Name)
 		}
 	}
-	if got := nextIndex(1, len(banners)); got != 0 {
+	if got := nextIndex(12, len(banners)); got != 0 {
 		t.Errorf("Wraparound: 0 erwartet, %d erhalten", got)
 	}
 }
@@ -157,7 +256,7 @@ func TestBannerAlignmentDefinitionsAndCycleOrder(t *testing.T) {
 }
 
 func TestBannerAndAlignmentLookup(t *testing.T) {
-	if got, err := bannerIndex("monochrome"); err != nil || got != 1 {
+	if got, err := bannerIndex("terrace-monochrome"); err != nil || got != 11 {
 		t.Fatalf("Banner-Lookup: Index %d, Fehler %v", got, err)
 	}
 	if got, err := bannerAlignmentIndex("center"); err != nil || got != 1 {
@@ -191,7 +290,7 @@ func TestBannerSettingsRoundTrip(t *testing.T) {
 	dir := t.TempDir()
 	bannerPath := filepath.Join(dir, "nested", "banner")
 	alignPath := filepath.Join(dir, "nested", "banner-alignment")
-	if err := SaveBannerName(bannerPath, "monochrome"); err != nil {
+	if err := SaveBannerName(bannerPath, "terrace-monochrome"); err != nil {
 		t.Fatal(err)
 	}
 	if err := SaveBannerAlignmentName(alignPath, "right"); err != nil {
@@ -209,7 +308,7 @@ func TestBannerSettingsRoundTrip(t *testing.T) {
 			t.Fatalf("Dateimodus %s: %04o, erwartet 0600", path, got)
 		}
 	}
-	if got, err := LoadBannerName(bannerPath); err != nil || got != "monochrome" {
+	if got, err := LoadBannerName(bannerPath); err != nil || got != "terrace-monochrome" {
 		t.Fatalf("Banner: %q, %v", got, err)
 	}
 	if got, err := LoadBannerAlignmentName(alignPath); err != nil || got != "right" {
@@ -219,10 +318,9 @@ func TestBannerSettingsRoundTrip(t *testing.T) {
 
 func TestLegacyBannerSettingsLoadNormalizedAndSaveStableName(t *testing.T) {
 	cases := map[string]string{
-		"wordmark-ansi": "ansi",
-		"terminal-ansi": "ansi",
-		"wordmark-mono": "monochrome",
-		"terminal-mono": "monochrome",
+		"ansi": "blurvision-rainbow3", "monochrome": "blurvision-monochrome",
+		"wordmark-ansi": "single-rainbow3", "wordmark-mono": "single-monochrome",
+		"terminal-ansi": "ansi-regular-rainbow3", "terminal-mono": "ansi-regular-monochrome",
 	}
 	for legacy, want := range cases {
 		t.Run(legacy, func(t *testing.T) {
@@ -255,6 +353,16 @@ func TestSaveBannerNameRejectsLegacyNames(t *testing.T) {
 	}
 	if _, err := os.Stat(path); !os.IsNotExist(err) {
 		t.Fatalf("ungültiger Modus hat Datei erzeugt: %v", err)
+	}
+}
+
+func TestBannerSettingsRoundTripsNone(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "banner")
+	if err := SaveBannerName(path, "none"); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := LoadBannerName(path); err != nil || got != "none" {
+		t.Fatalf("none: %q, %v", got, err)
 	}
 }
 
