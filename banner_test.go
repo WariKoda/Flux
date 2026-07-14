@@ -98,6 +98,25 @@ func TestRainbow3UsesTAAGDiagonalPhase(t *testing.T) {
 	}
 }
 
+func TestRainbow3SpaceConsumesDisplayCellAndAdvancesPhase(t *testing.T) {
+	form := BannerForm{Rows: []string{"a b", "a b"}}
+	got := renderBanner(form, BannerMode{ColorMode: bannerRainbow3}, Theme{})
+	want := "[#ff2828]a[#ff7800] b\n" +
+		"[#ff7800]a [#ffb400]b"
+	if got != want {
+		t.Fatalf("rainbow3 space phase:\n%q\nwant:\n%q", got, want)
+	}
+}
+
+func TestRainbow3WideRuneAdvancesByDisplayWidth(t *testing.T) {
+	form := BannerForm{Rows: []string{"界x", "z"}}
+	got := renderBanner(form, BannerMode{ColorMode: bannerRainbow3}, Theme{})
+	want := "[#ff2828]界[#ff7800]x\n[#ff7800]z"
+	if got != want {
+		t.Fatalf("rainbow3 wide-rune phase:\n%q\nwant:\n%q", got, want)
+	}
+}
+
 func TestSingleRowUsesEveryRainbow3ColorOnce(t *testing.T) {
 	wantColors := []string{
 		"#ff2828", "#ff7800", "#ffb400", "#ffdc00", "#dcff00", "#78ff00",
