@@ -42,8 +42,8 @@ const (
 )
 
 const (
-	titleMain = " Flux — Enter/Klick: verbinden · e: Filter · t: Theme · q/Esc: beenden "
-	titleEdit = " Flux · Filter — Enter/Klick/Leertaste: umschalten · e/Esc: fertig "
+	titleMain = " Flux — Tippen: suchen · Enter/Klick: verbinden · ^E: Filter · ^T: Theme · Esc: beenden "
+	titleEdit = " Flux · Filter — Enter/Klick/Leertaste: umschalten · ^E/Esc: fertig "
 )
 
 // hostShortDetail liefert die Kurzinfo-Spalte eines Hosts (effektiver su-User).
@@ -57,12 +57,44 @@ func hostShortDetail(h HostEntry) string {
 	return ""
 }
 
+// matchHosts liefert die Hosts, bei denen die Suchanfrage in Alias,
+// HostName, User oder im effektiven su-User/Ordner vorkommt
+// (Groß-/Kleinschreibung egal). Leere Anfrage: alle Hosts.
+func matchHosts(hosts []HostEntry, query string) []HostEntry {
+	if query == "" {
+		return hosts
+	}
+	q := strings.ToLower(query)
+	var out []HostEntry
+	for _, h := range hosts {
+		if hostMatches(h, q) {
+			out = append(out, h)
+		}
+	}
+	return out
+}
+
+func hostMatches(h HostEntry, lowerQuery string) bool {
+	fields := append([]string{}, h.Aliases...)
+	fields = append(fields, h.HostName, h.User)
+	if h.RemoteCommand != "" {
+		user, dir := parseRemoteTarget(h.RemoteCommand)
+		fields = append(fields, user, dir)
+	}
+	for _, f := range fields {
+		if f != "" && strings.Contains(strings.ToLower(f), lowerQuery) {
+			return true
+		}
+	}
+	return false
+}
+
 // runTUI zeigt die nach Servern gruppierte Host-Tabelle als zentriertes
 // Fenster an und liefert den gewählten Alias. Ein leerer String bedeutet:
-// Nutzer hat ohne Auswahl beendet (q/Esc). 't' wechselt das Theme
-// (persistiert unter themePath), 'e' öffnet die Filter-Sub-UI
-// (persistiert unter excludePath). Sind anfangs alle Hosts ausgeschlossen,
-// startet Flux direkt in der Filter-Sub-UI.
+// Nutzer hat ohne Auswahl beendet (Esc). Tippen filtert sofort; '^T'
+// wechselt das Theme (persistiert unter themePath), '^E' öffnet die
+// Filter-Sub-UI (persistiert unter excludePath). Sind anfangs alle Hosts
+// ausgeschlossen, startet Flux direkt in der Filter-Sub-UI.
 func runTUI(entries []HostEntry, excludes []string, excludePath, themeName, themePath string) (string, error) {
 	themeIdx, err := themeIndex(themeName)
 	if err != nil {
@@ -77,6 +109,7 @@ func runTUI(entries []HostEntry, excludes []string, excludePath, themeName, them
 	table.SetSelectable(true, false)
 	table.SetBorder(true)
 
+	searchBar := tview.NewTextView()
 	footer := tview.NewTextView()
 
 	var (
@@ -92,10 +125,11 @@ func runTUI(entries []HostEntry, excludes []string, excludePath, themeName, them
 	if len(excludeState.Visible(entries)) == 0 {
 		mode = modeEdit
 	}
+	query := ""
 
 	rowHosts := map[int]HostEntry{}
+	firstHostRow := -1
 
-	// fillTable baut den Tabelleninhalt für den aktiven Modus neu auf.
 	// Vorwärtsdeklaration, weil die Klick-Callbacks toggle() brauchen und
 	// toggle() wiederum fillTable.
 	var fillTable func(th Theme)
@@ -117,10 +151,12 @@ func runTUI(entries []HostEntry, excludes []string, excludePath, themeName, them
 		for k := range rowHosts {
 			delete(rowHosts, k)
 		}
+		firstHostRow = -1
 		hosts := entries
 		if mode == modeMain {
 			hosts = excludeState.Visible(entries)
 		}
+		hosts = matchHosts(hosts, query)
 		row := 0
 		for _, g := range groupHosts(hosts) {
 			table.SetCell(row, 0, tview.NewTableCell("─ "+g.Server+" ").
@@ -159,9 +195,20 @@ func runTUI(entries []HostEntry, excludes []string, excludePath, themeName, them
 					SetTextColor(th.Detail).
 					SetExpansion(1).
 					SetClickedFunc(click))
+				if firstHostRow < 0 {
+					firstHostRow = row
+				}
 				rowHosts[row] = host
 				row++
 			}
+		}
+	}
+
+	updateSearchBar := func() {
+		if query == "" {
+			searchBar.SetText(" Suche: (tippen zum Filtern)")
+		} else {
+			searchBar.SetText(" Suche: " + query + "▌")
 		}
 	}
 
@@ -172,8 +219,12 @@ func runTUI(entries []HostEntry, excludes []string, excludePath, themeName, them
 			if mode == modeEdit && excludeState.Excluded[h.Alias] {
 				text = "ausgeblendet · " + text
 			}
-		} else if mode == modeMain {
-			text = "alle Hosts ausgeblendet — 'e' öffnet den Filter"
+		} else if len(rowHosts) == 0 {
+			if query != "" {
+				text = "keine Treffer für \"" + query + "\""
+			} else if mode == modeMain {
+				text = "alle Hosts ausgeblendet — ^E öffnet den Filter"
+			}
 		}
 		return fmt.Sprintf(" %s │ Theme: %s", text, themes[themeIdx].DisplayName)
 	}
@@ -185,9 +236,23 @@ func runTUI(entries []HostEntry, excludes []string, excludePath, themeName, them
 		table.SetSelectedStyle(tcell.StyleDefault.
 			Foreground(th.SelectedFg).
 			Background(th.SelectedBg))
+		searchBar.SetBackgroundColor(th.Background)
+		searchBar.SetTextColor(th.Text)
 		footer.SetBackgroundColor(th.Background)
 		footer.SetTextColor(th.Detail)
 		fillTable(th)
+	}
+
+	// refresh baut die Tabelle nach Such-/Modus-Änderungen neu auf, wählt
+	// den ersten Treffer vor und aktualisiert Such- und Fußzeile.
+	refresh := func() {
+		fillTable(themes[themeIdx])
+		if firstHostRow >= 0 {
+			table.Select(firstHostRow, 0)
+		}
+		updateSearchBar()
+		row, _ := table.GetSelection()
+		footer.SetText(footerText(row))
 	}
 
 	setMode := func(m int) {
@@ -197,10 +262,7 @@ func runTUI(entries []HostEntry, excludes []string, excludePath, themeName, them
 		} else {
 			table.SetTitle(titleMain)
 		}
-		fillTable(themes[themeIdx])
-		table.Select(1, 0)
-		row, _ := table.GetSelection()
-		footer.SetText(footerText(row))
+		refresh()
 	}
 
 	applyTheme(themes[themeIdx])
@@ -223,47 +285,56 @@ func runTUI(entries []HostEntry, excludes []string, excludePath, themeName, them
 	setMode(mode)
 
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyEscape {
-			if mode == modeEdit {
+		switch event.Key() {
+		case tcell.KeyEscape:
+			if query != "" {
+				query = ""
+				refresh()
+			} else if mode == modeEdit {
 				setMode(modeMain)
 			} else {
 				app.Stop()
 			}
 			return nil
-		}
-		if event.Key() == tcell.KeyRune {
-			switch event.Rune() {
-			case 'q':
+		case tcell.KeyCtrlE:
+			if mode == modeEdit {
+				setMode(modeMain)
+			} else {
+				setMode(modeEdit)
+			}
+			return nil
+		case tcell.KeyCtrlT:
+			themeIdx = (themeIdx + 1) % len(themes)
+			if err := SaveThemeName(themePath, themes[themeIdx].Name); err != nil {
+				saveErr = err
 				app.Stop()
 				return nil
-			case 'e':
-				if mode == modeEdit {
-					setMode(modeMain)
-				} else {
-					setMode(modeEdit)
-				}
-				return nil
-			case ' ':
-				if mode == modeEdit {
-					row, _ := table.GetSelection()
-					if h, ok := rowHosts[row]; ok {
-						toggle(h)
-						footer.SetText(footerText(row))
-					}
-					return nil
-				}
-			case 't':
-				themeIdx = (themeIdx + 1) % len(themes)
-				if err := SaveThemeName(themePath, themes[themeIdx].Name); err != nil {
-					saveErr = err
-					app.Stop()
-					return nil
-				}
-				applyTheme(themes[themeIdx])
+			}
+			applyTheme(themes[themeIdx])
+			updateSearchBar()
+			row, _ := table.GetSelection()
+			footer.SetText(footerText(row))
+			return nil
+		case tcell.KeyBackspace, tcell.KeyBackspace2:
+			if query != "" {
+				runes := []rune(query)
+				query = string(runes[:len(runes)-1])
+				refresh()
+			}
+			return nil
+		case tcell.KeyRune:
+			r := event.Rune()
+			if mode == modeEdit && r == ' ' {
 				row, _ := table.GetSelection()
-				footer.SetText(footerText(row))
+				if h, ok := rowHosts[row]; ok {
+					toggle(h)
+					footer.SetText(footerText(row))
+				}
 				return nil
 			}
+			query += string(r)
+			refresh()
+			return nil
 		}
 		return event
 	})
@@ -304,9 +375,10 @@ func runTUI(entries []HostEntry, excludes []string, excludePath, themeName, them
 	if footerMax+1 > width {
 		width = footerMax + 1
 	}
-	height := totalRows + 3 // Rahmen (2) + Fußzeile (1)
+	height := totalRows + 4 // Rahmen (2) + Suchzeile (1) + Fußzeile (1)
 
 	content := tview.NewFlex().SetDirection(tview.FlexRow).
+		AddItem(searchBar, 1, 0, false).
 		AddItem(table, totalRows+2, 0, true).
 		AddItem(footer, 1, 0, false)
 	inner := tview.NewFlex().SetDirection(tview.FlexRow).

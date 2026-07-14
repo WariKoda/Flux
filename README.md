@@ -9,19 +9,24 @@ Shell.
 
 ## Bedienung
 
+**Einfach lostippen:** Jede Buchstaben-/Zifferntaste filtert die Liste sofort
+(Suche über Alias, HostName, User, su-User und Zielordner); der erste Treffer
+ist vorgewählt, `Enter` verbindet also direkt. `Backspace` löscht, `Esc`
+leert die Suche.
+
 | Eingabe | Wirkung |
 |---|---|
-| `↑`/`↓`, `j`/`k`, `Home`/`End` | Navigation (Überschriften werden übersprungen) |
+| Tippen | Sofort filtern |
+| `↑`/`↓`, `Home`/`End` | Navigation (Überschriften werden übersprungen) |
 | `Enter` oder **Linksklick** | Mit dem gewählten Host verbinden |
 | Mausrad | Scrollen |
-| `e` | Filter-Ansicht öffnen/schließen (Einträge ein-/ausblenden) |
-| `t` | Theme wechseln (wird gespeichert) |
-| `q` | Beenden ohne Verbindung |
-| `Esc` | Filter-Ansicht schließen bzw. beenden |
+| `Strg+E` | Filter-Ansicht öffnen/schließen (Einträge ein-/ausblenden) |
+| `Strg+T` | Theme wechseln (wird gespeichert) |
+| `Esc` | Suche leeren → Filter-Ansicht schließen → beenden |
 
 In der Filter-Ansicht schalten `Enter`, **Linksklick** oder die Leertaste den
 markierten Eintrag um: `[x]` = sichtbar, `[ ]` = ausgeblendet. Jede Änderung
-wird sofort gespeichert.
+wird sofort gespeichert; die Tipp-Suche funktioniert auch hier.
 
 ## Build
 
