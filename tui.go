@@ -42,8 +42,9 @@ const (
 )
 
 const (
-	titleMain = " Flux — Tippen: suchen · Enter/Klick: verbinden · ^E: Filter · ^T: Theme · Esc: beenden "
-	titleEdit = " Flux · Filter — Enter/Klick/Leertaste: umschalten · ^E/Esc: fertig "
+	titleMain = " Flux — Tippen: suchen · Enter/Klick: verbinden · ^E: Filter · ^T: Theme · ^H: Hilfe · Esc: beenden "
+	titleEdit = " Flux · Filter — Enter/Klick/Leertaste: umschalten · ^E/Esc: fertig · ^H: Hilfe "
+	titleHelp = " Flux · Hilfe — ^H/Esc: zurück "
 )
 
 type tuiViewState struct {
@@ -98,6 +99,10 @@ func handleHelpKey(event *tcell.EventKey, state *tuiViewState) bool {
 	return true
 }
 
+func settingsStatus(theme Theme, banner Banner, alignment BannerAlignment) string {
+	return fmt.Sprintf("Theme: %s · Banner: %s · Ausrichtung: %s", theme.DisplayName, banner.DisplayName, alignment.DisplayName)
+}
+
 // hostShortDetail liefert die Kurzinfo-Spalte eines Hosts (effektiver su-User).
 func hostShortDetail(h HostEntry) string {
 	if h.RemoteCommand == "" {
@@ -144,11 +149,20 @@ func hostMatches(h HostEntry, lowerQuery string) bool {
 // runTUI zeigt die nach Servern gruppierte Host-Tabelle als zentriertes
 // Fenster an und liefert den gewählten Alias. Ein leerer String bedeutet:
 // Nutzer hat ohne Auswahl beendet (Esc). Tippen filtert sofort; '^T'
-// wechselt das Theme (persistiert unter themePath), '^E' öffnet die
-// Filter-Sub-UI (persistiert unter excludePath). Sind anfangs alle Hosts
-// ausgeschlossen, startet Flux direkt in der Filter-Sub-UI.
-func runTUI(entries []HostEntry, excludes []string, excludePath, themeName, themePath string) (string, error) {
+// wechselt das Theme (persistiert unter themePath), '^B' den Banner und '^A'
+// dessen Ausrichtung. '^H' öffnet die Hilfe, '^E' die Filter-Sub-UI
+// (persistiert unter excludePath). Sind anfangs alle Hosts ausgeschlossen,
+// startet Flux direkt in der Filter-Sub-UI.
+func runTUI(entries []HostEntry, excludes []string, excludePath, themeName, themePath, bannerName, bannerPath, alignmentName, alignmentPath string) (string, error) {
 	themeIdx, err := themeIndex(themeName)
+	if err != nil {
+		return "", err
+	}
+	bannerIdx, err := bannerIndex(bannerName)
+	if err != nil {
+		return "", err
+	}
+	alignmentIdx, err := bannerAlignmentIndex(alignmentName)
 	if err != nil {
 		return "", err
 	}
@@ -163,6 +177,14 @@ func runTUI(entries []HostEntry, excludes []string, excludePath, themeName, them
 
 	searchBar := tview.NewTextView()
 	footer := tview.NewTextView()
+	bannerView := tview.NewTextView().SetDynamicColors(true)
+	helpView := tview.NewTextView().SetScrollable(true)
+	helpView.SetBorder(true).SetTitle(titleHelp)
+	helpView.SetText(helpText())
+	bodyPages := tview.NewPages().
+		AddPage("hosts", table, true, true).
+		AddPage("help", helpView, true, false)
+	viewState := tuiViewState{}
 
 	var (
 		selected string
@@ -278,7 +300,16 @@ func runTUI(entries []HostEntry, excludes []string, excludePath, themeName, them
 				text = "alle Hosts ausgeblendet — ^E öffnet den Filter"
 			}
 		}
-		return fmt.Sprintf(" %s │ Theme: %s", text, themes[themeIdx].DisplayName)
+		return fmt.Sprintf(" %s │ %s", text, settingsStatus(themes[themeIdx], banners[bannerIdx], bannerAlignments[alignmentIdx]))
+	}
+
+	refreshBanner := func() {
+		th := themes[themeIdx]
+		bannerView.SetText(renderBanner(banners[bannerIdx], th))
+		bannerView.SetTextAlign(bannerAlignments[alignmentIdx].TViewAlign)
+		bannerView.SetBackgroundColor(th.Background)
+		row, _ := table.GetSelection()
+		footer.SetText(footerText(row))
 	}
 
 	applyTheme := func(th Theme) {
@@ -292,6 +323,10 @@ func runTUI(entries []HostEntry, excludes []string, excludePath, themeName, them
 		searchBar.SetTextColor(th.Text)
 		footer.SetBackgroundColor(th.Background)
 		footer.SetTextColor(th.Detail)
+		helpView.SetBackgroundColor(th.Background)
+		helpView.SetTextColor(th.Text)
+		helpView.SetBorderColor(th.Border)
+		helpView.SetTitleColor(th.Title)
 		fillTable(th)
 	}
 
@@ -318,6 +353,7 @@ func runTUI(entries []HostEntry, excludes []string, excludePath, themeName, them
 	}
 
 	applyTheme(themes[themeIdx])
+	refreshBanner()
 
 	table.SetSelectionChangedFunc(func(row, column int) {
 		footer.SetText(footerText(row))
@@ -336,7 +372,102 @@ func runTUI(entries []HostEntry, excludes []string, excludePath, themeName, them
 	})
 	setMode(mode)
 
+	// Fenstermaße aus der Filter-Ansicht ableiten (Obermenge aller Zeilen).
+	// Auch die Fußzeile zählt mit, damit die Detailanzeige nie abgeschnitten
+	// wird.
+	longestSettings := ""
+	for _, th := range themes {
+		for _, banner := range banners {
+			for _, alignment := range bannerAlignments {
+				status := settingsStatus(th, banner, alignment)
+				if len([]rune(status)) > len([]rune(longestSettings)) {
+					longestSettings = status
+				}
+			}
+		}
+	}
+	maxLine := len([]rune(titleMain))
+	if l := len([]rune(titleEdit)); l > maxLine {
+		maxLine = l
+	}
+	totalRows := 0
+	footerMax := 0
+	for _, g := range groupHosts(entries) {
+		if l := len([]rune("─ " + g.Server + " ")); l > maxLine {
+			maxLine = l
+		}
+		totalRows++
+		for _, h := range g.Hosts {
+			line := " [x] " + h.Alias + "  " + hostShortDetail(h)
+			if l := len([]rune(line)); l > maxLine {
+				maxLine = l
+			}
+			footerLine := " ausgeblendet · " + hostDetail(h) + " │ " + longestSettings
+			if l := len([]rune(footerLine)); l > footerMax {
+				footerMax = l
+			}
+			totalRows++
+		}
+	}
+	width := maxLine + 4
+	if footerMax+1 > width {
+		width = footerMax + 1
+	}
+	height := totalRows + 4 // Rahmen (2) + Suchzeile (1) + Fußzeile (1)
+
+	content := tview.NewFlex().SetDirection(tview.FlexRow).
+		AddItem(searchBar, 1, 0, false).
+		AddItem(bodyPages, totalRows+2, 0, true).
+		AddItem(footer, 1, 0, false)
+	bannerGap := tview.NewBox()
+	bannerSize := bannerHeight(banners[bannerIdx]) + 1
+	bannerStack := tview.NewFlex().SetDirection(tview.FlexRow).
+		AddItem(bannerView, bannerHeight(banners[bannerIdx]), 0, false).
+		AddItem(bannerGap, 1, 0, false).
+		AddItem(content, height, 0, true)
+	inner := tview.NewFlex().SetDirection(tview.FlexRow).
+		AddItem(nil, 0, 1, false).
+		AddItem(bannerStack, height+bannerSize, 0, true).
+		AddItem(nil, 0, 1, false)
+	outer := tview.NewFlex().SetDirection(tview.FlexColumn).
+		AddItem(nil, 0, 1, false).
+		AddItem(inner, width, 0, true).
+		AddItem(nil, 0, 1, false)
+
+	app.SetBeforeDrawFunc(func(screen tcell.Screen) bool {
+		_, screenHeight := screen.Size()
+		size := 0
+		if bannerVisible(screenHeight, height, banners[bannerIdx]) {
+			size = bannerHeight(banners[bannerIdx]) + 1
+		}
+		bannerStack.ResizeItem(bannerView, max(0, size-1), 0)
+		gapSize := 0
+		if size > 0 {
+			gapSize = 1
+		}
+		bannerStack.ResizeItem(bannerGap, gapSize, 0)
+		inner.ResizeItem(bannerStack, height+size, 0)
+		return false
+	})
+
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		wasHelpVisible := viewState.HelpVisible
+		if handleHelpKey(event, &viewState) {
+			if viewState.HelpVisible != wasHelpVisible {
+				if viewState.HelpVisible {
+					helpView.SetTitle(titleHelp)
+					helpView.ScrollToBeginning()
+					bodyPages.SwitchToPage("help")
+					app.SetFocus(helpView)
+				} else {
+					bodyPages.SwitchToPage("hosts")
+					app.SetFocus(table)
+				}
+				return nil
+			}
+			return event
+		}
+
 		switch event.Key() {
 		case tcell.KeyEscape:
 			if query != "" {
@@ -356,16 +487,33 @@ func runTUI(entries []HostEntry, excludes []string, excludePath, themeName, them
 			}
 			return nil
 		case tcell.KeyCtrlT:
-			themeIdx = (themeIdx + 1) % len(themes)
+			themeIdx = nextIndex(themeIdx, len(themes))
 			if err := SaveThemeName(themePath, themes[themeIdx].Name); err != nil {
 				saveErr = err
 				app.Stop()
 				return nil
 			}
 			applyTheme(themes[themeIdx])
+			refreshBanner()
 			updateSearchBar()
-			row, _ := table.GetSelection()
-			footer.SetText(footerText(row))
+			return nil
+		case tcell.KeyCtrlB:
+			bannerIdx = nextIndex(bannerIdx, len(banners))
+			if err := SaveBannerName(bannerPath, banners[bannerIdx].Name); err != nil {
+				saveErr = err
+				app.Stop()
+				return nil
+			}
+			refreshBanner()
+			return nil
+		case tcell.KeyCtrlA:
+			alignmentIdx = nextIndex(alignmentIdx, len(bannerAlignments))
+			if err := SaveBannerAlignmentName(alignmentPath, bannerAlignments[alignmentIdx].Name); err != nil {
+				saveErr = err
+				app.Stop()
+				return nil
+			}
+			refreshBanner()
 			return nil
 		case tcell.KeyBackspace, tcell.KeyBackspace2:
 			if query != "" {
@@ -390,57 +538,6 @@ func runTUI(entries []HostEntry, excludes []string, excludePath, themeName, them
 		}
 		return event
 	})
-
-	// Fenstermaße aus der Filter-Ansicht ableiten (Obermenge aller Zeilen).
-	// Auch die Fußzeile zählt mit, damit die Detailanzeige nie abgeschnitten
-	// wird.
-	longestTheme := ""
-	for _, th := range themes {
-		if len([]rune(th.DisplayName)) > len([]rune(longestTheme)) {
-			longestTheme = th.DisplayName
-		}
-	}
-	maxLine := len([]rune(titleMain))
-	if l := len([]rune(titleEdit)); l > maxLine {
-		maxLine = l
-	}
-	totalRows := 0
-	footerMax := 0
-	for _, g := range groupHosts(entries) {
-		if l := len([]rune("─ " + g.Server + " ")); l > maxLine {
-			maxLine = l
-		}
-		totalRows++
-		for _, h := range g.Hosts {
-			line := " [x] " + h.Alias + "  " + hostShortDetail(h)
-			if l := len([]rune(line)); l > maxLine {
-				maxLine = l
-			}
-			footerLine := " ausgeblendet · " + hostDetail(h) + " │ Theme: " + longestTheme
-			if l := len([]rune(footerLine)); l > footerMax {
-				footerMax = l
-			}
-			totalRows++
-		}
-	}
-	width := maxLine + 4
-	if footerMax+1 > width {
-		width = footerMax + 1
-	}
-	height := totalRows + 4 // Rahmen (2) + Suchzeile (1) + Fußzeile (1)
-
-	content := tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(searchBar, 1, 0, false).
-		AddItem(table, totalRows+2, 0, true).
-		AddItem(footer, 1, 0, false)
-	inner := tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(nil, 0, 1, false).
-		AddItem(content, height, 0, true).
-		AddItem(nil, 0, 1, false)
-	outer := tview.NewFlex().SetDirection(tview.FlexColumn).
-		AddItem(nil, 0, 1, false).
-		AddItem(inner, width, 0, true).
-		AddItem(nil, 0, 1, false)
 
 	if err := app.SetRoot(outer, true).Run(); err != nil {
 		return "", fmt.Errorf("TUI-Fehler: %w", err)

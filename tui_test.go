@@ -7,6 +7,21 @@ import (
 	"github.com/gdamore/tcell/v2"
 )
 
+func TestMainTitlesAdvertiseHelp(t *testing.T) {
+	if !strings.Contains(titleMain, "^H: Hilfe") || !strings.Contains(titleEdit, "^H: Hilfe") {
+		t.Fatal("Hilfe-Shortcut fehlt im Titel")
+	}
+}
+
+func TestFooterSettingsText(t *testing.T) {
+	got := settingsStatus(themes[0], banners[2], bannerAlignments[2])
+	for _, want := range []string{"Theme: Dunkel", "Banner: Terminal · ANSI", "Ausrichtung: Rechts"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("Status enthält %q nicht: %q", want, got)
+		}
+	}
+}
+
 func TestHelpTextListsCommandsAndOptions(t *testing.T) {
 	got := helpText()
 	for _, want := range []string{"Ctrl+E", "Ctrl+T", "Ctrl+B", "Ctrl+A", "Ctrl+H", "Esc", "Wortmarke · ANSI", "Terminal · Monochrom", "Links", "Mitte", "Rechts", "Okabe-Ito Dunkel"} {

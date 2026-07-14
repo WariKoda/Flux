@@ -42,6 +42,16 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	bannerPath := filepath.Join(configDir, "flux", "banner")
+	bannerName, err := LoadBannerName(bannerPath)
+	if err != nil {
+		return err
+	}
+	alignmentPath := filepath.Join(configDir, "flux", "banner-alignment")
+	alignmentName, err := LoadBannerAlignmentName(alignmentPath)
+	if err != nil {
+		return err
+	}
 
 	// Wildcard-Blöcke sind nie anzeigbar; Ausschlüsse verwaltet die
 	// Filter-Sub-UI in runTUI selbst.
@@ -55,7 +65,7 @@ func run() error {
 		return fmt.Errorf("ssh nicht im PATH: %w", err)
 	}
 
-	selected, err := runTUI(candidates, excludes, excludePath, themeName, themePath)
+	selected, err := runTUI(candidates, excludes, excludePath, themeName, themePath, bannerName, bannerPath, alignmentName, alignmentPath)
 	if err != nil {
 		return err
 	}
