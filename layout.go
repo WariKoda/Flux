@@ -24,46 +24,39 @@ type tuiLayout struct {
 }
 
 func calculateTUILayout(screenWidth, screenHeight, naturalWidth, preferredBodyHeight int, footerText string, mode BannerMode) tuiLayout {
-	widthCap := max(1, min(maxTUIWidth, screenWidth-2*horizontalMargin))
-	desiredWidth := max(1, naturalWidth)
-	for _, form := range mode.Family.Forms {
-		formWidth := bannerFormWidth(form)
-		if formWidth <= widthCap {
-			desiredWidth = max(desiredWidth, formWidth)
-			break
-		}
-	}
-	width := min(widthCap, desiredWidth)
-
-	footerHeight := wrappedLineCount(footerText, max(1, width-borderHeight))
-	bodyHeight := max(minBodyHeight, preferredBodyHeight)
-	availableWindowHeight := max(0, screenHeight-2*verticalMargin)
+	_ = naturalWidth
+	width := max(1, min(maxTUIWidth, screenWidth-2*horizontalMargin))
+	availableHeight := max(0, screenHeight-2*verticalMargin)
 	fixedHeight := borderHeight + searchHeight
-	windowHeight := min(availableWindowHeight, fixedHeight+bodyHeight+footerHeight)
-
-	overflow := fixedHeight + bodyHeight + footerHeight - windowHeight
-	if overflow > 0 {
-		bodyReduction := min(overflow, bodyHeight-minBodyHeight)
-		bodyHeight -= bodyReduction
-		overflow -= bodyReduction
-
-		footerReduction := min(overflow, footerHeight)
-		footerHeight -= footerReduction
-		overflow -= footerReduction
-
-		// Tiny terminals keep fixed border/search rows where possible, then use any
-		// remaining row for the body; only they may reduce it below the minimum.
-		bodyHeight -= min(overflow, bodyHeight)
-	}
-
-	remainingHeight := screenHeight - 2*verticalMargin - windowHeight
+	minimumWindowHeight := fixedHeight + minBodyHeight
+	bannerAndGap := 0
 	var banner *BannerForm
 	for i := range mode.Family.Forms {
 		form := &mode.Family.Forms[i]
-		if bannerFormWidth(*form) <= width && bannerHeight(*form)+bannerGapHeight <= remainingHeight {
+		formAndGap := bannerHeight(*form) + bannerGapHeight
+		if bannerFormWidth(*form) <= width && formAndGap+minimumWindowHeight <= availableHeight {
 			banner = form
+			bannerAndGap = formAndGap
 			break
 		}
+	}
+
+	windowCapacity := availableHeight - bannerAndGap
+	footerHeight := 0
+	bodyHeight := 0
+	windowHeight := windowCapacity
+	if windowCapacity < minimumWindowHeight {
+		allocatedFixedHeight := min(fixedHeight, windowCapacity)
+		bodyHeight = windowCapacity - allocatedFixedHeight
+	} else {
+		bodyHeight = minBodyHeight
+		remainingHeight := windowCapacity - minimumWindowHeight
+		wrappedFooterHeight := wrappedLineCount(footerText, max(1, width-borderHeight))
+		footerHeight = min(wrappedFooterHeight, remainingHeight)
+		remainingHeight -= footerHeight
+		preferredBodyHeight = max(minBodyHeight, preferredBodyHeight)
+		bodyHeight += min(preferredBodyHeight-minBodyHeight, remainingHeight)
+		windowHeight = fixedHeight + bodyHeight + footerHeight
 	}
 
 	return tuiLayout{
