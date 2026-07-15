@@ -64,7 +64,7 @@ var compactBanner = BannerForm{Name: "compact", Rows: []string{
 var blurVisionFamily = BannerFamily{Name: "blurvision", Forms: []BannerForm{compactBanner}}
 var singleFamily = BannerFamily{Name: "single", Forms: []BannerForm{{Name: "single", Rows: []string{"▓▒░ FLUX ░▒▓"}}}}
 var ansiRegularFamily = BannerFamily{Name: "ansi-regular", Forms: []BannerForm{{Name: "regular", Rows: []string{
-	"███████ ██      ██    ██ ██   ██", "██      ██      ██    ██  ██ ██", "█████   ██      ██    ██   ███", "██      ██      ██    ██  ██ ██", "██      ███████  ██████  ██   ██",
+	"███████ ██      ██    ██ ██   ██", "██      ██      ██    ██  ██ ██", "█████▌  ██      ██    ██   ███", "██      ██      ██    ██  ██ ██", "██      ███████  ██████  ██   ██",
 }}}}
 var banner3Family = BannerFamily{Name: "banner3", Forms: []BannerForm{{Name: "banner3", Rows: []string{
 	"######## ##       ##     ## ##     ##", "##       ##       ##     ##  ##   ##", "##       ##       ##     ##   ## ##", "######   ##       ##     ##    ###", "##       ##       ##     ##   ## ##", "##       ##       ##     ##  ##   ##", "##       ########  #######  ##     ##",
