@@ -137,13 +137,10 @@ func bannerVisible(screenHeight, tuiHeight int, form BannerForm) bool {
 
 func alignedBannerText(form BannerForm, mode BannerMode, width int, alignment BannerAlignment, theme Theme) string {
 	rows := strings.Split(renderBanner(form, mode, theme), "\n")
-	for i, row := range form.Rows {
-		rowWidth := runewidth.StringWidth(row)
-		if width <= rowWidth {
-			continue
-		}
-
-		padding := width - rowWidth
+	blockWidth := bannerFormWidth(form)
+	padding := 0
+	if width > blockWidth {
+		padding = width - blockWidth
 		switch alignment.TViewAlign {
 		case tview.AlignCenter:
 			padding /= 2
@@ -151,6 +148,8 @@ func alignedBannerText(form BannerForm, mode BannerMode, width int, alignment Ba
 		default:
 			padding = 0
 		}
+	}
+	for i := range rows {
 		rows[i] = strings.Repeat(" ", padding) + rows[i]
 	}
 	return strings.Join(rows, "\n")

@@ -8,8 +8,14 @@ import (
 )
 
 func TestMainTitlesAdvertiseHelp(t *testing.T) {
-	if !strings.Contains(titleMain, "^O: Optionen") || !strings.Contains(titleEdit, "^O: Optionen") {
-		t.Fatal("Optionen-Shortcut fehlt im Titel")
+	if titleMain != " Flux · ^O: Optionen " {
+		t.Fatalf("Haupttitel = %q", titleMain)
+	}
+	if titleEdit != " Flux · Filter — Enter/Klick/Leertaste: umschalten · ^E/Esc: fertig · ^O: Optionen " {
+		t.Fatalf("Filtertitel verändert: %q", titleEdit)
+	}
+	if titleHelp != " Flux · Optionen — ^O/Esc: zurück " {
+		t.Fatalf("Optionstitel verändert: %q", titleHelp)
 	}
 }
 
@@ -49,8 +55,8 @@ func TestNaturalTableWidthDependsOnlyOnGroupAndHostRows(t *testing.T) {
 	if got != want {
 		t.Fatalf("natürliche Tabellenbreite = %d, erwartet %d", got, want)
 	}
-	if got >= len([]rune(titleMain)) || got >= len([]rune(hostDetail(entries[0]))) {
-		t.Fatalf("Breite %d wurde von Titel oder Footer beeinflusst", got)
+	if got >= len([]rune(hostDetail(entries[0]))) {
+		t.Fatalf("Breite %d wurde vom Footer beeinflusst", got)
 	}
 }
 

@@ -233,6 +233,29 @@ func TestAlignedBannerText(t *testing.T) {
 	}
 }
 
+func TestAlignedBannerBlock(t *testing.T) {
+	form := BannerForm{Rows: []string{"123456", "12", "1234"}}
+	theme := Theme{Text: tcell.ColorGreen}
+	tests := []struct {
+		name      string
+		alignment BannerAlignment
+		want      string
+	}{
+		{name: "left", alignment: bannerAlignments[0], want: "123456\n12\n1234"},
+		{name: "center", alignment: bannerAlignments[1], want: "  123456\n  12\n  1234"},
+		{name: "right", alignment: bannerAlignments[2], want: "    123456\n    12\n    1234"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := stripTags(alignedBannerText(form, banners[1], 10, tt.alignment, theme))
+			if got != tt.want {
+				t.Fatalf("Blockausrichtung:\n%q\nwant:\n%q", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestAlignedBannerTextUsesDisplayWidth(t *testing.T) {
 	form := BannerForm{Rows: []string{"界"}}
 	got := stripTags(alignedBannerText(form, banners[1], 4, bannerAlignments[1], Theme{Text: tcell.ColorGreen}))
