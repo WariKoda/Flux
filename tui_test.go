@@ -60,12 +60,15 @@ func TestHelpTextListsCommandsAndOptions(t *testing.T) {
 		"Tippen", "Suche", "Backspace", "Pfeil ↑/↓", "Home/End", "Enter",
 		"Linksklick", "Mausrad", "Ctrl+E", "Ctrl+T", "Ctrl+B", "Ctrl+A",
 		"Ctrl+O", "Esc", "BlurVision", "Single", "ANSI Regular", "Banner3",
-		"ANSI Compact", "Terrace", "Monochrom", "Regenbogen", "Kein Banner",
+		"ANSI Compact", "Monochrom", "Regenbogen", "Kein Banner",
 		"Links", "Mitte", "Rechts", "Okabe-Ito Dunkel",
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("Hilfe enthält %q nicht", want)
 		}
+	}
+	if strings.Contains(got, "Terrace") {
+		t.Fatal("help unexpectedly advertises removed Terrace banner")
 	}
 	for _, old := range []string{"wordmark-ansi", "wordmark-mono", "terminal-ansi", "terminal-mono"} {
 		if strings.Contains(got, old) {

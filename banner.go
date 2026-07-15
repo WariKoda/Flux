@@ -50,20 +50,8 @@ var banners = []BannerMode{
 	{"banner3-monochrome", "Banner3 · Monochrom", banner3Family, bannerMonochrome},
 	{"ansi-compact-rainbow3", "ANSI Compact · Regenbogen", ansiCompactFamily, bannerRainbow3},
 	{"ansi-compact-monochrome", "ANSI Compact · Monochrom", ansiCompactFamily, bannerMonochrome},
-	{"terrace-rainbow3", "Terrace · Regenbogen", terraceFamily, bannerRainbow3},
-	{"terrace-monochrome", "Terrace · Monochrom", terraceFamily, bannerMonochrome},
 	{"none", "Kein Banner", noneFamily, bannerNone},
 }
-
-var largeBanner = BannerForm{Name: "large", Rows: []string{
-	"░▒▓████████▓▒░▒▓█▓▒░     ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░",
-	"░▒▓█▓▒░      ░▒▓█▓▒░     ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░",
-	"░▒▓█▓▒░      ░▒▓█▓▒░     ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░",
-	"░▒▓██████▓▒░ ░▒▓█▓▒░     ░▒▓█▓▒░░▒▓█▓▒░░▒▓██████▓▒░",
-	"░▒▓█▓▒░      ░▒▓█▓▒░     ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░",
-	"░▒▓█▓▒░      ░▒▓█▓▒░     ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░",
-	"░▒▓█▓▒░      ░▒▓████████▓▒░▒▓██████▓▒░░▒▓█▓▒░░▒▓█▓▒░",
-}}
 
 var compactBanner = BannerForm{Name: "compact", Rows: []string{
 	"░▒▓████████▓▒░▒▓█▓▒░     ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░",
@@ -73,19 +61,16 @@ var compactBanner = BannerForm{Name: "compact", Rows: []string{
 	"░▒▓█▓▒░      ░▒▓████████▓▒░▒▓██████▓▒░░▒▓█▓▒░░▒▓█▓▒░",
 }}
 
-var blurVisionFamily = BannerFamily{Name: "blurvision", Forms: []BannerForm{largeBanner, compactBanner}}
+var blurVisionFamily = BannerFamily{Name: "blurvision", Forms: []BannerForm{compactBanner}}
 var singleFamily = BannerFamily{Name: "single", Forms: []BannerForm{{Name: "single", Rows: []string{"▓▒░ FLUX ░▒▓"}}}}
 var ansiRegularFamily = BannerFamily{Name: "ansi-regular", Forms: []BannerForm{{Name: "regular", Rows: []string{
-	"███████ ██      ██    ██ ██   ██", "██      ██      ██    ██  ██ ██", "█████   ██      ██    ██   ███", "██      ██      ██    ██  ██ ██", "██      ███████  ██████  ██   ██",
+	"███████ ██      ██    ██ ██   ██", "██      ██      ██    ██  ██ ██", "█████▌  ██      ██    ██   ███", "██      ██      ██    ██  ██ ██", "██      ███████  ██████  ██   ██",
 }}}}
 var banner3Family = BannerFamily{Name: "banner3", Forms: []BannerForm{{Name: "banner3", Rows: []string{
 	"######## ##       ##     ## ##     ##", "##       ##       ##     ##  ##   ##", "##       ##       ##     ##   ## ##", "######   ##       ##     ##    ###", "##       ##       ##     ##   ## ##", "##       ##       ##     ##  ##   ##", "##       ########  #######  ##     ##",
 }}}}
 var ansiCompactFamily = BannerFamily{Name: "ansi-compact", Forms: []BannerForm{{Name: "ansi-compact", Rows: []string{
 	"██████ ▄▄    ▄▄ ▄▄ ▄▄ ▄▄", "██▄▄   ██    ██ ██ ▀█▄█▀", "██     ██▄▄▄ ▀███▀ ██ ██",
-}}}}
-var terraceFamily = BannerFamily{Name: "terrace", Forms: []BannerForm{{Name: "terrace", Rows: []string{
-	"░██████████░██", "░██        ░██", "░██        ░██ ░██    ░██ ░██    ░██", "░█████████ ░██ ░██    ░██  ░██  ░██", "░██        ░██ ░██    ░██   ░█████", "░██        ░██ ░██   ░███  ░██  ░██", "░██        ░██  ░█████░██ ░██    ░██",
 }}}}
 var noneFamily = BannerFamily{Name: "none"}
 
@@ -188,6 +173,10 @@ func normalizeBannerName(name string) (string, error) {
 		return "ansi-regular-rainbow3", nil
 	case "terminal-mono":
 		return "ansi-regular-monochrome", nil
+	case "terrace-rainbow3":
+		return "blurvision-rainbow3", nil
+	case "terrace-monochrome":
+		return "blurvision-monochrome", nil
 	default:
 		return "", fmt.Errorf("unbekannter Banner %q", name)
 	}

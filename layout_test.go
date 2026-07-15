@@ -18,7 +18,7 @@ func TestCalculateTUILayoutUsesAvailableWidthUpToCap(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := calculateTUILayout(tt.screenWidth, 40, tt.naturalWidth, 3, "kurz", banners[12]).Width
+			got := calculateTUILayout(tt.screenWidth, 40, tt.naturalWidth, 3, "kurz", banners[len(banners)-1]).Width
 			if got != tt.want {
 				t.Fatalf("Width = %d, %d erwartet", got, tt.want)
 			}
@@ -28,8 +28,8 @@ func TestCalculateTUILayoutUsesAvailableWidthUpToCap(t *testing.T) {
 
 func TestFooterWrapIgnoresNaturalWidth(t *testing.T) {
 	footer := strings.Repeat("footer ", 30)
-	narrowNatural := calculateTUILayout(80, 40, 1, 3, footer, banners[12])
-	wideNatural := calculateTUILayout(80, 40, 140, 3, footer, banners[12])
+	narrowNatural := calculateTUILayout(80, 40, 1, 3, footer, banners[len(banners)-1])
+	wideNatural := calculateTUILayout(80, 40, 140, 3, footer, banners[len(banners)-1])
 	if narrowNatural.FooterHeight != wideNatural.FooterHeight {
 		t.Fatalf("FooterHeight = %d/%d bei gleicher Screenbreite", narrowNatural.FooterHeight, wideNatural.FooterHeight)
 	}
@@ -48,7 +48,7 @@ func TestFooterWrapDoesNotChangeWidth(t *testing.T) {
 
 func TestConstrainedLayoutPreservesMinimumBodyAndAllocatesWrappedFooter(t *testing.T) {
 	screenHeight := 2*verticalMargin + borderHeight + searchHeight + minBodyHeight + 4
-	layout := calculateTUILayout(40, screenHeight, 20, 50, strings.Repeat("footer ", 100), banners[12])
+	layout := calculateTUILayout(40, screenHeight, 20, 50, strings.Repeat("footer ", 100), banners[len(banners)-1])
 
 	if layout.BodyHeight < minBodyHeight {
 		t.Fatalf("BodyHeight = %d, mindestens %d erwartet", layout.BodyHeight, minBodyHeight)
@@ -88,10 +88,9 @@ func TestTinyTerminalLayoutReconcilesWithoutNegativeSizes(t *testing.T) {
 }
 
 func TestBannerFormSelectionAtWidthAndHeightBoundaries(t *testing.T) {
-	formWidth := bannerFormWidth(largeBanner)
-	minimumWindowHeight := borderHeight + searchHeight + minBodyHeight
-	largeScreenHeight := 2*verticalMargin + minimumWindowHeight + bannerGapHeight + bannerHeight(largeBanner)
-	compactScreenHeight := 2*verticalMargin + minimumWindowHeight + bannerGapHeight + bannerHeight(compactBanner)
+	form := blurVisionFamily.Forms[0]
+	formWidth := bannerFormWidth(form)
+	exactScreenHeight := 2*verticalMargin + 5 + bannerGapHeight + borderHeight + searchHeight + minBodyHeight
 
 	tests := []struct {
 		name         string
@@ -99,11 +98,9 @@ func TestBannerFormSelectionAtWidthAndHeightBoundaries(t *testing.T) {
 		screenHeight int
 		wantBanner   *BannerForm
 	}{
-		{"large at exact width and height", formWidth + 2*horizontalMargin, largeScreenHeight, &banners[0].Family.Forms[0]},
-		{"compact one row below large boundary", formWidth + 2*horizontalMargin, largeScreenHeight - 1, &banners[0].Family.Forms[1]},
-		{"compact at exact height", formWidth + 2*horizontalMargin, compactScreenHeight, &banners[0].Family.Forms[1]},
-		{"hidden one row below compact boundary", formWidth + 2*horizontalMargin, compactScreenHeight - 1, nil},
-		{"hidden one column below form width", formWidth + 2*horizontalMargin - 1, largeScreenHeight, nil},
+		{"fixed form at exact width and height", formWidth + 2*horizontalMargin, exactScreenHeight, &banners[0].Family.Forms[0]},
+		{"hidden one row below exact height", formWidth + 2*horizontalMargin, exactScreenHeight - 1, nil},
+		{"hidden one column below form width", formWidth + 2*horizontalMargin - 1, exactScreenHeight, nil},
 	}
 
 	for _, tt := range tests {
@@ -115,25 +112,25 @@ func TestBannerFormSelectionAtWidthAndHeightBoundaries(t *testing.T) {
 			if layout.BodyHeight < minBodyHeight {
 				t.Fatalf("BodyHeight = %d, mindestens %d erwartet", layout.BodyHeight, minBodyHeight)
 			}
-			if (tt.screenHeight == largeScreenHeight || tt.screenHeight == compactScreenHeight) && tt.wantBanner != nil && layout.FooterHeight != 0 {
+			if tt.screenHeight == exactScreenHeight && tt.wantBanner != nil && layout.FooterHeight != 0 {
 				t.Fatalf("FooterHeight = %d, 0 erwartet", layout.FooterHeight)
 			}
 		})
 	}
 }
 
-func TestBannerFirstPreservesLargeBeforePreferredBody(t *testing.T) {
+func TestBannerFirstPreservesFixedFormBeforePreferredBody(t *testing.T) {
 	minimumWindowHeight := borderHeight + searchHeight + minBodyHeight
-	screenHeight := 2*verticalMargin + bannerHeight(largeBanner) + bannerGapHeight + minimumWindowHeight
+	screenHeight := 2*verticalMargin + bannerHeight(blurVisionFamily.Forms[0]) + bannerGapHeight + minimumWindowHeight
 	layout := calculateTUILayout(100, screenHeight, 1, 50, "kurz", banners[0])
 	if layout.Banner != &banners[0].Family.Forms[0] || layout.BodyHeight != minBodyHeight || layout.FooterHeight != 0 {
-		t.Fatalf("Layout = %+v, large mit Body %d und Footer 0 erwartet", layout, minBodyHeight)
+		t.Fatalf("Layout = %+v, feste Form mit Body %d und Footer 0 erwartet", layout, minBodyHeight)
 	}
 }
 
 func TestFooterShrinksBeforeBannerAndThenReceivesExtraRow(t *testing.T) {
 	minimumWindowHeight := borderHeight + searchHeight + minBodyHeight
-	exactHeight := 2*verticalMargin + bannerHeight(largeBanner) + bannerGapHeight + minimumWindowHeight
+	exactHeight := 2*verticalMargin + bannerHeight(blurVisionFamily.Forms[0]) + bannerGapHeight + minimumWindowHeight
 	footer := strings.Repeat("footer ", 100)
 	exact := calculateTUILayout(100, exactHeight, 1, 50, footer, banners[0])
 	if exact.Banner != &banners[0].Family.Forms[0] || exact.FooterHeight != 0 {
@@ -165,7 +162,6 @@ func TestSelectedBannerFamilyBoundaries(t *testing.T) {
 		{"ansi regular", banners[4]},
 		{"banner3", banners[6]},
 		{"ansi compact", banners[8]},
-		{"terrace", banners[10]},
 	}
 
 	for _, tt := range tests {
@@ -190,7 +186,7 @@ func TestSelectedBannerFamilyBoundaries(t *testing.T) {
 }
 
 func TestNoneBannerNeverSelectsOrWidens(t *testing.T) {
-	layout := calculateTUILayout(200, 100, 20, minBodyHeight, "kurz", banners[12])
+	layout := calculateTUILayout(200, 100, 20, minBodyHeight, "kurz", banners[len(banners)-1])
 	if layout.Banner != nil {
 		t.Fatalf("Banner = %s, hidden erwartet", bannerName(layout.Banner))
 	}
@@ -201,7 +197,7 @@ func TestNoneBannerNeverSelectsOrWidens(t *testing.T) {
 
 func TestNoneBannerDoesNotFillUnusedHeight(t *testing.T) {
 	footer := "kurz"
-	layout := calculateTUILayout(80, 100, 1, 5, footer, banners[12])
+	layout := calculateTUILayout(80, 100, 1, 5, footer, banners[len(banners)-1])
 	want := borderHeight + searchHeight + 5 + wrappedLineCount(footer, layout.Width-borderHeight)
 	if layout.WindowHeight != want {
 		t.Fatalf("WindowHeight = %d, %d erwartet", layout.WindowHeight, want)
