@@ -43,7 +43,7 @@ const (
 )
 
 const (
-	titleMain = " Flux — Tippen: suchen · Enter/Klick: verbinden · ^E: Filter · ^T: Theme · ^O: Optionen · Esc: beenden "
+	titleMain = " Flux · ^O: Optionen "
 	titleEdit = " Flux · Filter — Enter/Klick/Leertaste: umschalten · ^E/Esc: fertig · ^O: Optionen "
 	titleHelp = " Flux · Optionen — ^O/Esc: zurück "
 )
