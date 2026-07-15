@@ -85,6 +85,34 @@ func TestLegacyBannerNamesNormalize(t *testing.T) {
 	}
 }
 
+func TestREADMEBannerCatalogMatchesCurrentChoices(t *testing.T) {
+	data, err := os.ReadFile("README.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	readme := string(data)
+
+	for _, stale := range []string{
+		"**Terrace** —",
+		"sechs Banner-Designs",
+		"dreizehn",
+		"13 Zustände",
+		"siebenzeilige Form, dann die vollständige fünfzeilige Form",
+	} {
+		if strings.Contains(readme, stale) {
+			t.Errorf("README enthält veraltete Banner-Dokumentation %q", stale)
+		}
+	}
+	for legacy, current := range map[string]string{
+		"terrace-rainbow3":   "blurvision-rainbow3",
+		"terrace-monochrome": "blurvision-monochrome",
+	} {
+		if !strings.Contains(readme, "`"+legacy+"` wird `"+current+"`") {
+			t.Errorf("README dokumentiert Legacy-Zuordnung %s -> %s nicht", legacy, current)
+		}
+	}
+}
+
 func TestRainbow3UsesTAAGDiagonalPhase(t *testing.T) {
 	form := BannerForm{Rows: []string{"abcd", "efgh", "ijkl"}}
 	got := renderBanner(form, BannerMode{ColorMode: bannerRainbow3}, Theme{})

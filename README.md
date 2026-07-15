@@ -62,15 +62,15 @@ Benötigt Go ≥ 1.26 und ein `ssh`-Binary im `PATH`.
 
 ## Banner und Hilfe
 
-Mit `Ctrl+B` wechselst du der Reihe nach durch sechs Banner-Designs, jeweils
-als **Regenbogen** und **Monochrom**, sowie die Auswahl **Kein Banner**:
+Mit `Ctrl+B` wechselst du der Reihe nach durch fünf sichtbare Banner-Designs,
+jeweils als **Regenbogen** und **Monochrom**, sowie die Auswahl **Kein Banner**.
+Das ergibt elf Zustände:
 
 - **BlurVision** — die klassische FLUX-Wortmarke,
 - **Single** — eine kompakte einzeilige Wortmarke,
 - **ANSI Regular** — eine fünfzeilige Blockschrift,
 - **Banner3** — eine siebenzeilige Rautenschrift,
-- **ANSI Compact** — eine dreizeilige kompakte Blockschrift,
-- **Terrace** — eine siebenzeilige Terrassenschrift.
+- **ANSI Compact** — eine dreizeilige kompakte Blockschrift.
 
 Die Regenbogen-Varianten verwenden `rainbow3`: zwölf Farben laufen über die
 sichtbaren Terminalspalten, wechseln bei mehrzeiligen Bannern alle zwei
@@ -85,6 +85,9 @@ und beim nächsten Start wiederhergestellt. Ältere gespeicherte Werte
 `ansi`, `monochrome`, `wordmark-ansi`, `terminal-ansi`, `wordmark-mono` und
 `terminal-mono` bleiben kompatibel und werden dem jeweils passenden
 BlurVision-, Single- oder ANSI-Regular-Banner zugeordnet.
+Die früheren Terrace-Werte werden ebenfalls weiter akzeptiert:
+`terrace-rainbow3` wird `blurvision-rainbow3` zugeordnet und
+`terrace-monochrome` wird `blurvision-monochrome` zugeordnet.
 
 Mit `Ctrl+A` wechselst du zwischen den Ausrichtungen Links, Mitte und Rechts.
 Flux speichert die Ausrichtung unverändert in
@@ -92,16 +95,16 @@ Flux speichert die Ausrichtung unverändert in
 Zeichnen neu bestimmt. Das zentrierte TUI nutzt die gesamte verfügbare Breite
 innerhalb von mindestens zwei Terminalspalten Rand auf jeder Seite, höchstens
 jedoch 100 Spalten. Ein ausgewählter Banner wird vor der Erweiterung des
-Hosts-Bereichs reserviert. **BlurVision** verwendet zuerst die vollständige
-siebenzeilige Form, dann die vollständige fünfzeilige Form und bleibt
-verborgen, wenn keine davon passt. Jeder Banner muss vollständig zusammen mit
-Fensterrahmen, Suche und mindestens drei Zeilen des Hosts-Bereichs passen.
+Hosts-Bereichs reserviert. **BlurVision** hat eine feste fünfzeilige Form, die
+nur vollständig angezeigt wird und andernfalls verborgen bleibt. Jeder Banner
+muss vollständig zusammen mit Fensterrahmen, Suche und mindestens drei Zeilen
+des Hosts-Bereichs passen.
 
 Enthält die Hosts-Liste mehr Zeilen als der zugeteilte sichtbare Bereich,
 scrollt sie innerhalb dieses Bereichs. Lange Fußzeilen werden innerhalb der
 TUI-Breite umgebrochen; ihre Zeilenzahl schrumpft nötigenfalls bis auf null,
 bevor ein ansonsten passender Banner verborgen wird. Single, ANSI Regular,
-Banner3, ANSI Compact und Terrace behalten jeweils ihre feste Form: Sie werden
+Banner3 und ANSI Compact behalten ebenfalls jeweils ihre feste Form: Sie werden
 nur vollständig angezeigt oder vorübergehend verborgen und erscheinen nach
 einer passenden Terminal-Größenänderung wieder. Banner werden nie
 abgeschnitten oder skaliert. Farbvariante und die mit `Ctrl+A` gewählte
