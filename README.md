@@ -89,18 +89,23 @@ BlurVision-, Single- oder ANSI-Regular-Banner zugeordnet.
 Mit `Ctrl+A` wechselst du zwischen den Ausrichtungen Links, Mitte und Rechts.
 Flux speichert die Ausrichtung unverändert in
 `~/.config/flux/banner-alignment`. Größe und Sichtbarkeit werden bei jedem
-Zeichnen neu bestimmt. Nur **BlurVision** besitzt zwei Formen: Passt die
-vollständige siebenzeilige Form samt Trennzeile nicht, versucht Flux die
-vollständige fünfzeilige Form; passt auch sie nicht in Breite oder Höhe,
-bleibt der Banner verborgen. Single, ANSI Regular, Banner3, ANSI Compact und
-Terrace haben jeweils eine feste Form und werden vollständig verborgen,
-sobald diese nicht passt. Banner werden nie abgeschnitten oder skaliert und
-nach einer Terminal-Größenänderung sofort neu gewählt. Farbvariante und die
-mit `Ctrl+A` gewählte Ausrichtung bleiben dabei erhalten.
+Zeichnen neu bestimmt. Das zentrierte TUI nutzt die gesamte verfügbare Breite
+innerhalb von mindestens zwei Terminalspalten Rand auf jeder Seite, höchstens
+jedoch 100 Spalten. Ein ausgewählter Banner wird vor der Erweiterung des
+Hosts-Bereichs reserviert. **BlurVision** verwendet zuerst die vollständige
+siebenzeilige Form, dann die vollständige fünfzeilige Form und bleibt
+verborgen, wenn keine davon passt. Jeder Banner muss vollständig zusammen mit
+Fensterrahmen, Suche und mindestens drei Zeilen des Hosts-Bereichs passen.
 
-Das zentrierte TUI bleibt höchstens 100 Spalten breit und lässt links wie
-rechts mindestens zwei Terminalspalten frei. Lange Fußzeilen werden innerhalb
-dieser Breite auf mehrere Zeilen umgebrochen, statt das Fenster zu verbreitern.
+Enthält die Hosts-Liste mehr Zeilen als der zugeteilte sichtbare Bereich,
+scrollt sie innerhalb dieses Bereichs. Lange Fußzeilen werden innerhalb der
+TUI-Breite umgebrochen; ihre Zeilenzahl schrumpft nötigenfalls bis auf null,
+bevor ein ansonsten passender Banner verborgen wird. Single, ANSI Regular,
+Banner3, ANSI Compact und Terrace behalten jeweils ihre feste Form: Sie werden
+nur vollständig angezeigt oder vorübergehend verborgen und erscheinen nach
+einer passenden Terminal-Größenänderung wieder. Banner werden nie
+abgeschnitten oder skaliert. Farbvariante und die mit `Ctrl+A` gewählte
+Ausrichtung bleiben dabei erhalten.
 
 `Ctrl+O` öffnet die Optionen/Hilfe innerhalb desselben Fensters. `Ctrl+O`
 oder `Esc` schließt sie wieder. Suchtext, Auswahl, Ansicht, Theme, Banner und
